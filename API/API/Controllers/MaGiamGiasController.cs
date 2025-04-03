@@ -61,12 +61,20 @@ namespace API.Controllers
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteMaGiamGias(int id)
         {
-            MaGiamGia mgg;
-            mgg = await _context.MaGiamGias.FindAsync(id);
+            var mgg = await _context.MaGiamGias.FindAsync(id);
+
+            // Nếu không tìm thấy, trả về NotFound theo đúng unit test
+            if (mgg == null)
+            {
+                return NotFound(new { message = $"Không tìm thấy mã giảm giá với ID {id}" });
+            }
+
             _context.MaGiamGias.Remove(mgg);
-            await _hubContext.Clients.All.BroadcastMessage();
             await _context.SaveChangesAsync();
+
+            await _hubContext.Clients.All.BroadcastMessage();
             return Ok();
         }
+
     }
 }
