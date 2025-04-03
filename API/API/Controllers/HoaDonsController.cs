@@ -57,9 +57,38 @@ namespace API.Controllers
         [HttpPost("hoadon/{id}")]
         public async Task<ActionResult> ChitietHoaDon(int id)
         {
-            var resuft = await _context.HoaDons.Where(d => d.Id == id).FirstOrDefaultAsync();
-            resuft.User = await _context.AppUsers.Where(d => d.Id == resuft.Id_User).FirstOrDefaultAsync();
-            return Json(resuft);
+            try
+            {
+                // Tìm hóa đơn theo ID
+                var resuft = await _context.HoaDons
+                    .Where(d => d.Id == id)
+                    .FirstOrDefaultAsync();
+
+                // Kiểm tra nếu không tìm thấy hóa đơn
+                if (resuft == null)
+                {
+                    return NotFound(new { message = $"Không tìm thấy hóa đơn với ID {id}" });
+                }
+
+                // Tìm người dùng liên quan đến hóa đơn
+                resuft.User = await _context.AppUsers
+                    .Where(d => d.Id == resuft.Id_User)
+                    .FirstOrDefaultAsync();
+
+                // Kiểm tra nếu không tìm thấy người dùng
+                if (resuft.User == null)
+                {
+                    return NotFound(new { message = $"Không tìm thấy người dùng với ID {resuft.Id_User}" });
+                }
+
+                // Trả về kết quả dưới dạng JSON
+                return Json(resuft);
+            }
+            catch (Exception ex)
+            {
+                // Xử lý lỗi bất ngờ (ví dụ: lỗi kết nối cơ sở dữ liệu, lỗi truy vấn, v.v.)
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi lấy chi tiết hóa đơn", error = ex.Message });
+            }
         }
         [HttpPost("danhsachhoadon")]
         public async Task<ActionResult> ListHoaDon(UserDto user)
@@ -70,12 +99,32 @@ namespace API.Controllers
         [HttpPut("suatrangthai/{id}")]
         public async Task<IActionResult> SuaTrangThai(int id, HoaDonUser hd)
         {
-            var kq = await _context.HoaDons.FindAsync(id);
-            kq.TrangThai = hd.TrangThai;
-            _context.HoaDons.Update(kq);
-            await _context.SaveChangesAsync();
-            await _hubContext.Clients.All.BroadcastMessage();
-            return Ok();
+            try
+            {
+                // Tìm hóa đơn theo ID
+                var kq = await _context.HoaDons.FindAsync(id);
+
+                // Kiểm tra nếu không tìm thấy hóa đơn
+                if (kq == null)
+                {
+                    return NotFound(new { message = $"Không tìm thấy hóa đơn với ID {id}" });
+                }
+
+                // Cập nhật trạng thái
+                kq.TrangThai = hd.TrangThai;
+                _context.HoaDons.Update(kq);
+                await _context.SaveChangesAsync();
+
+                // Gửi thông báo qua SignalR
+                await _hubContext.Clients.All.BroadcastMessage();
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                // Xử lý lỗi bất ngờ (ví dụ: lỗi cơ sở dữ liệu, lỗi SignalR, v.v.)
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi cập nhật trạng thái hóa đơn", error = ex.Message });
+            }
         }
         [HttpGet("{id}")]
         public async Task<ActionResult<IEnumerable<ChiTietHoaDonSanPhamBienTheViewModel>>> GetChiTietHoaDonSanPhamBienTheViewModel(int id)
