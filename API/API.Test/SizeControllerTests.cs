@@ -47,6 +47,7 @@ namespace API.Tests {
             return context;
         }
 
+        // Size01: Kiểm tra phương thức trả về list size theo mẫu sản phẩm
         [Fact]
         public void GetListSizeTheoMau_ReturnsSizeList() {
             // Arrange
@@ -69,6 +70,7 @@ namespace API.Tests {
             Assert.NotEmpty(list);
         }
 
+        // Size02: Kiểm tra phương thức trả về danh sách tất cả size
         [Fact]
         public async Task GetSizes_ReturnsExpectedList() {
             // Arrange
@@ -90,6 +92,7 @@ namespace API.Tests {
             Assert.Equal("M", value[0].TenSize); 
         }
 
+        // Size03:  Kiểm tra phương thức trả về danh sách tên của các size
         [Fact]
         public async Task GetTenSizeLoais_ReturnsExpectedList() {
             // Arrange
@@ -109,6 +112,7 @@ namespace API.Tests {
             Assert.Equal("M Áo", value[0].SizeLoaiTen); 
         }
 
+        // Size04: Kiểm tra phương thức trả về size khi ID hợp lệ
         [Fact]
         public async Task GetSize_ReturnsSize_WhenIdExists() {
             // Arrange
@@ -126,6 +130,7 @@ namespace API.Tests {
             Assert.Equal("M", size.TenSize);
         }
 
+        // Size05: Kiểm tra phương thức trả về NotFound khi ID không hợp lệ
         [Fact]
         public async Task GetSize_ReturnsNotFound_WhenIdDoesNotExist() {
             // Arrange
@@ -141,6 +146,7 @@ namespace API.Tests {
             Assert.IsType<NotFoundResult>(actionResult.Result);
         }
 
+        // Size06: Kiểm tra phương thức cập nhật size khi ID hợp lệ
         [Fact]
         public async Task PutSize_UpdatesSize_WhenIdExists() {
             // Arrange
@@ -170,6 +176,7 @@ namespace API.Tests {
             Assert.Equal("L", noti.TenSanPham);
         }
 
+        // Size07: Kiểm tra phương thức cập nhật size khi ID không hợp lệ
         [Fact]
         public async Task PutSize_ReturnsException_WhenIdNotFound() {
             // Arrange
@@ -188,6 +195,7 @@ namespace API.Tests {
             await Assert.ThrowsAsync<NullReferenceException>(() => controller.PutSize(99, upload));
         }
 
+        // Size08: Kiểm tra phương thức tạo mới size khi dữ liệu hợp lệ
         [Fact]
         public async Task PostSize_ReturnsCreatedAtActionResult_WhenDataIsValid() {
             // Arrange
@@ -220,6 +228,7 @@ namespace API.Tests {
             Assert.Equal(upload.TenSize, notification.TenSanPham);
         }
 
+        // Size09: Kiểm tra phương thức xóa size khi ID hợp lệ
         [Fact]
         public async Task DeleteSize_ReturnsNoContent_WhenIdExists() {
             // Arrange
@@ -249,7 +258,7 @@ namespace API.Tests {
             Assert.Equal("M", notification.TenSanPham);
         }
 
-
+        // Size10: Kiểm tra phương thức xóa size khi ID không hợp lệ
         [Fact]
         public async Task DeleteSize_ReturnsNotFound_WhenIdDoesNotExist() {
             // Arrange
