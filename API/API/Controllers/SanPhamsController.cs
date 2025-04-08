@@ -192,6 +192,8 @@ namespace API.Controllers
             var listImage = new List<ImageSanPham>();
             SanPham sanpham = new SanPham();
             sanpham = await _context.SanPhams.FirstOrDefaultAsync(s => s.Id == id);
+            if (sanpham == null)
+                return NotFound();
             sanpham.Ten = upload.Ten;
             sanpham.NgayCapNhat = DateTime.Now;
             sanpham.HuongDan = upload.HuongDan;
@@ -233,7 +235,6 @@ namespace API.Controllers
             ImageSanPham[] images = _context.ImageSanPhams.Where(s => s.IdSanPham == id).ToArray();
             _context.ImageSanPhams.RemoveRange(images);
             ImageSanPham image = new ImageSanPham();
-            var file = upload.files.ToArray();
             var imageSanPhams = _context.ImageSanPhams.ToArray().Where(s => s.IdSanPham == id);
             foreach (var i in imageSanPhams)
             {
@@ -241,13 +242,14 @@ namespace API.Controllers
             }
             if (upload.files != null)
             {
+                var file = upload.files.ToArray();
                 for (int i = 0; i < file.Length; i++)
                 {
                     if (file[i].Length > 0 && file[i].Length< 5120)
                     {
                         listImage.Add(new ImageSanPham()
                         {
-                            ImageName = await FileHelper.UploadImageAndReturnFileNameAsync(upload, null, "product", (IFormFile[])upload.files, i),
+                            ImageName = await FileHelper.UploadImageAndReturnFileNameAsync(upload, null, "product", upload.files.ToArray(), i),
                             IdSanPham = sanpham.Id,
                         });
                     }
@@ -300,17 +302,17 @@ namespace API.Controllers
                 TranType = "Add"
             };
             _context.Notifications.Add(notification);
-            var file = upload.files.ToArray();
             _context.SanPhams.Add(sanpham);
             await _context.SaveChangesAsync();
             if (upload.files != null)
             {
+                var file = upload.files.ToArray();
                 for (int i = 0; i < file.Length; i++)
                 {
                     if (file[i].Length > 0 && file[i].Length < 5120)
                     {
                         var imageSanPham = new ImageSanPham();
-                        imageSanPham.ImageName = await FileHelper.UploadImageAndReturnFileNameAsync(upload, null, "product", (IFormFile[])upload.files, i);
+                        imageSanPham.ImageName = await FileHelper.UploadImageAndReturnFileNameAsync(upload, null, "product",upload.files.ToArray(), i);
                         imageSanPham.IdSanPham = sanpham.Id;
                         _context.ImageSanPhams.Update(imageSanPham);
                         await _context.SaveChangesAsync();
@@ -342,12 +344,7 @@ namespace API.Controllers
             }
             var CategoryConstraint = _context.Loais.Where(s => s.Id == id);
             var BrandConstraint = _context.NhanHieus.SingleOrDefaultAsync(s => s.Id == id);
-            if (CategoryConstraint != null)
-            {
-                _context.SanPhams.Remove(sanPham);
-            }
-            if (BrandConstraint != null)
-            {
+            if (CategoryConstraint != null || BrandConstraint != null) {
                 _context.SanPhams.Remove(sanPham);
             }
             Notification notification = new Notification()
