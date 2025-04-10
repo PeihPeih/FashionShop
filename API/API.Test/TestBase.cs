@@ -14,6 +14,10 @@ namespace API.Test {
 
         public TestBase() {
             _options = new DbContextOptionsBuilder<DPContext>()
+<<<<<<< HEAD
+=======
+                //.UseSqlServer("Data Source=DESKTOP-EFD70IT\\SQLEXPRESS;Initial Catalog=EFashionShop;Integrated Security=True;Connect Timeout=30;Encrypt=True;Trust Server Certificate=True;Application Intent=ReadWrite;Multi Subnet Failover=False")
+>>>>>>> 715a7d4d4dfc660b5b86a4dc9efd7e351c84b828
                 .UseSqlServer("Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=EFashionShop;Integrated Security=True;Connect Timeout=30;Encrypt=False;Trust Server Certificate=False;Application Intent=ReadWrite;Multi Subnet Failover=False")
                 .Options;
 
