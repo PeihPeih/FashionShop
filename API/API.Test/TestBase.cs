@@ -14,7 +14,7 @@ namespace API.Test {
 
         public TestBase() {
             _options = new DbContextOptionsBuilder<DPContext>()
-                .UseSqlServer("Data Source=DESKTOP-EFD70IT\\SQLEXPRESS;Initial Catalog=EFashionShop;Integrated Security=True;Connect Timeout=30;Encrypt=True;Trust Server Certificate=True;Application Intent=ReadWrite;Multi Subnet Failover=False")
+                .UseSqlServer("Server=DESKTOP-P4V9CNG\\CSSLPTSUB1;Database=EFashionShop;Integrated Security=True")
                 .Options;
 
             // Bắt đầu một TransactionScope mới, cho phép rollback
