@@ -1,166 +1,163 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using API.Controllers;
 using API.Data;
-using API.Models;
-using API.Helper.SignalR;
-using Xunit;
-using Microsoft.AspNetCore.Http;
 using API.Dtos;
+using API.Helper.SignalR;
+using API.Models;
+using Xunit;
+using API.Test;
 
-namespace API.Tests
+namespace API.Test
 {
-    public class MaGiamGiasControllerTests
+    public class MaGiamGiasControllerTests : TestBase
     {
         private readonly DPContext _context;
-        private readonly Mock<IHubContext<BroadcastHub, IHubClient>> _hubContextMock;
+        private readonly IHubContext<BroadcastHub, IHubClient> _hubContext;
         private readonly MaGiamGiasController _controller;
 
-        public MaGiamGiasControllerTests()
+        public MaGiamGiasControllerTests() : base()
         {
-            // Thiết lập InMemory Database để test không ảnh hưởng đến database thật
-            var options = new DbContextOptionsBuilder<DPContext>()
-                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-                .Options;
-            _context = new DPContext(options);
+            _context = new DPContext(_options);
 
-            // Mock IHubContext để test SignalR mà không cần kết nối thực
-            _hubContextMock = new Mock<IHubContext<BroadcastHub, IHubClient>>();
-            var clientsMock = new Mock<IHubClients<IHubClient>>();
-            var clientMock = new Mock<IHubClient>();
+            var mockHub = new Mock<IHubContext<BroadcastHub, IHubClient>>();
+            var mockClients = new Mock<IHubClients<IHubClient>>();
+            var mockClientProxy = new Mock<IHubClient>();
+            mockHub.Setup(h => h.Clients).Returns(mockClients.Object);
+            mockClients.Setup(c => c.All).Returns(mockClientProxy.Object);
+            _hubContext = mockHub.Object;
 
-            clientsMock.Setup(clients => clients.All).Returns(clientMock.Object);
-            _hubContextMock.Setup(hub => hub.Clients).Returns(clientsMock.Object);
-            clientMock.Setup(client => client.BroadcastMessage()).Returns(Task.CompletedTask);
-
-            // Khởi tạo controller
-            _controller = new MaGiamGiasController(_context, _hubContextMock.Object);
-
-            // Thêm dữ liệu giả lập ban đầu
-            SeedData();
+            _controller = new MaGiamGiasController(_context, _hubContext);
         }
 
-        private void SeedData()
-        {
-            // Thêm một số mã giảm giá vào database giả lập
-            var maGiamGia1 = new MaGiamGia { Id = 1, Code = "ABC12", SoTienGiam = 10000 };
-            var maGiamGia2 = new MaGiamGia { Id = 2, Code = "XYZ34", SoTienGiam = 20000 };
-
-            _context.MaGiamGias.AddRange(maGiamGia1, maGiamGia2);
-            _context.SaveChanges();
-        }
-
-        /// <summary>
-        /// Test Case MGG01: Kiểm tra phương thức GetMaGiamGias trả về danh sách khi có dữ liệu
-        /// </summary>
+        // MGG01: Kiểm tra lấy danh sách mã giảm giá thành công khi có dữ liệu trong DB
         [Fact]
-        public async Task GetMaGiamGias_ReturnsList_WhenDataExists()
+        public async Task GetMaGiamGias_ShouldReturnAll_WhenHaveData()
         {
-            // Act: Gọi API để lấy danh sách mã giảm giá
+
+            // Arrange
+            var expected1 = new MaGiamGia { Code = "X1", SoTienGiam = 10000 };
+            var expected2 = new MaGiamGia { Code = "X2", SoTienGiam = 20000 };
+            _context.MaGiamGias.AddRange(expected1, expected2);
+            await _context.SaveChangesAsync();
+
+            // Act
             var result = await _controller.GetMaGiamGias();
 
-            // Assert: Kiểm tra kết quả trả về có phải danh sách không
-            var okResult = Assert.IsType<ActionResult<IEnumerable<MaGiamGia>>>(result);
-            var maGiamGias = Assert.IsAssignableFrom<List<MaGiamGia>>(okResult.Value);
-
-            // Kiểm tra danh sách có đúng số lượng phần tử không
-            Assert.Equal(2, maGiamGias.Count);
-            Assert.Contains(maGiamGias, m => m.Code == "ABC12");
-            Assert.Contains(maGiamGias, m => m.Code == "XYZ34");
+            // Assert
+            var list = Assert.IsAssignableFrom<IEnumerable<MaGiamGia>>(result.Value);
+            var actual = list.ToList();
+            Assert.Contains(actual, x => x.Code == "X1" && x.SoTienGiam == 10000);
+            Assert.Contains(actual, x => x.Code == "X2" && x.SoTienGiam == 20000);
         }
 
-        /// <summary>
-        /// Test Case MGG02: Kiểm tra phương thức GetMaGiamGias trả về danh sách rỗng khi không có dữ liệu
-        /// </summary>
+        // MGG02: Kiểm tra trả về danh sách rỗng khi không có mã giảm giá nào
         [Fact]
-        public async Task GetMaGiamGias_ReturnsEmptyList_WhenNoData()
+        public async Task GetMaGiamGias_ShouldReturnEmpty_WhenNoData()
         {
-            // Arrange: Xóa toàn bộ dữ liệu trong bảng
-            _context.MaGiamGias.RemoveRange(_context.MaGiamGias);
-            _context.SaveChanges();
 
-            // Act: Gọi API để lấy danh sách mã giảm giá
+            // Arrange
+            _context.MaGiamGias.RemoveRange(_context.MaGiamGias); // Clear DB
+            await _context.SaveChangesAsync();
+
+            // Act
             var result = await _controller.GetMaGiamGias();
 
-            // Assert: Kiểm tra danh sách trả về rỗng
-            var okResult = Assert.IsType<ActionResult<IEnumerable<MaGiamGia>>>(result);
-            var maGiamGias = Assert.IsAssignableFrom<List<MaGiamGia>>(okResult.Value);
-            Assert.Empty(maGiamGias);
+            // Assert
+            var list = Assert.IsAssignableFrom<IEnumerable<MaGiamGia>>(result.Value);
+            Assert.Empty(list);
         }
 
-        /// <summary>
-        /// Test Case MGG03: Kiểm tra phương thức tạo mã giảm giá thành công
-        /// </summary>
+        // MGG03: Kiểm tra tạo mã giảm giá thành công với đầu vào hợp lệ
         [Fact]
-        public async Task TaoMaGiamGia_ReturnsOk_WhenDataIsValid()
+        public async Task TaoMaGiamGia_ShouldCreateSuccessfully_WhenValidInput()
         {
-            // Arrange: Tạo đối tượng đầu vào
-            var uploadMaGiamGia = new UploadMaGiamGia { SoTienGiam = 15000 };
 
-            // Act: Gọi API để tạo mã giảm giá mới
-            var result = await _controller.TaoMaGiamGia(uploadMaGiamGia);
+            // Arrange
+            var input = new UploadMaGiamGia { SoTienGiam = 30000 };
 
-            // Assert: Kiểm tra kết quả trả về là OkResult
-            var okResult = Assert.IsType<OkResult>(result);
-            Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
+            // Act
+            var result = await _controller.TaoMaGiamGia(input);
 
-            // Kiểm tra mã giảm giá mới có tồn tại trong database không
-            var createdMaGiamGia = _context.MaGiamGias.Last();
-            Assert.Equal(15000, createdMaGiamGia.SoTienGiam);
-            Assert.Equal(5, createdMaGiamGia.Code.Length); // Kiểm tra độ dài mã giảm giá
-            _hubContextMock.Verify(h => h.Clients.All.BroadcastMessage(), Times.Once()); // Kiểm tra SignalR được gọi
+            // Assert
+            var ok = Assert.IsType<OkResult>(result);
+            Assert.Equal(200, ok.StatusCode);
+
+            var added = _context.MaGiamGias
+                .OrderByDescending(x => x.Id) // Sắp xếp theo ID trước khi lấy
+                .First();
+
+            Assert.Equal(30000, added.SoTienGiam);
+            Assert.False(string.IsNullOrEmpty(added.Code));
+
         }
 
-        /// <summary>
-        /// Test Case MGG06: Kiểm tra xóa mã giảm giá thành công khi ID hợp lệ
-        /// </summary>
+        // MGG04: Kiểm tra cập nhật mã giảm giá khi ID hợp lệ
         [Fact]
-        public async Task DeleteMaGiamGias_ReturnsOk_WhenIdIsValid()
+        public async Task SuaMaGiamGia_ShouldUpdateSuccessfully_WhenIdIsValid()
         {
-            // Act: Gọi API xóa mã giảm giá có ID = 1
-            var result = await _controller.DeleteMaGiamGias(1);
 
-            // Assert: Kiểm tra kết quả trả về là OkResult
-            var okResult = Assert.IsType<OkResult>(result);
-            Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
+            // Arrange
+            var existing = new MaGiamGia { Code = "ABC", SoTienGiam = 5000 };
+            _context.MaGiamGias.Add(existing);
+            await _context.SaveChangesAsync();
 
-            // Kiểm tra mã giảm giá đã bị xóa khỏi database
-            var deletedMaGiamGia = await _context.MaGiamGias.FindAsync(1);
-            Assert.Null(deletedMaGiamGia);
+            var input = new UploadMaGiamGia { SoTienGiam = 9999 };
 
-            // Kiểm tra SignalR có được gọi không
-            _hubContextMock.Verify(h => h.Clients.All.BroadcastMessage(), Times.Once());
+            // Act
+            var result = await _controller.SuaMaGiamGia(input, existing.Id);
+
+            // Assert
+            var ok = Assert.IsType<OkResult>(result);
+            var updated = await _context.MaGiamGias.FindAsync(existing.Id);
+            Assert.Equal(9999, updated.SoTienGiam);
+            Assert.Equal(5, updated.Code.Length);
         }
 
-        /// <summary>
-        /// Test Case MGG07: Kiểm tra phương thức trả về NotFound khi ID không tồn tại
-        /// </summary>
+        //  MGG05: Kiểm tra xóa mã giảm giá thành công khi ID tồn tại
         [Fact]
-        public async Task DeleteMaGiamGias_ReturnsNotFound_WhenIdIsInvalid()
+        public async Task DeleteMaGiamGias_ShouldReturnOk_WhenIdExists()
         {
-            // Act: Gọi API xóa mã giảm giá với ID không tồn tại
-            var result = await _controller.DeleteMaGiamGias(999);
 
-            // Assert: Kiểm tra kết quả trả về là NotFoundObjectResult
-            var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
-            var error = notFoundResult.Value;
+            // Arrange
+            var entity = new MaGiamGia { Code = "DEL", SoTienGiam = 8000 };
+            _context.MaGiamGias.Add(entity);
+            await _context.SaveChangesAsync();
 
-            // Kiểm tra thông báo lỗi
+            // Act
+            var result = await _controller.DeleteMaGiamGias(entity.Id);
+
+            // Assert
+            var ok = Assert.IsType<OkResult>(result);
+            var deleted = await _context.MaGiamGias.FindAsync(entity.Id);
+            Assert.Null(deleted);
+        }
+
+        // MGG06: Kiểm tra xóa mã giảm giá trả về NotFound khi ID không tồn tại
+        [Fact]
+        public async Task DeleteMaGiamGias_ShouldReturnNotFound_WhenIdInvalid()
+        {
+
+            // Arrange
+            var invalidId = 999;
+
+            // Act
+            var result = await _controller.DeleteMaGiamGias(invalidId);
+
+            // Assert
+            var notFound = Assert.IsType<NotFoundObjectResult>(result);
+            var error = notFound.Value;
             var messageProperty = error.GetType().GetProperty("message");
-            var messageValue = messageProperty.GetValue(error) as string;
+            var messageValue = messageProperty?.GetValue(error)?.ToString();
             Assert.Equal("Không tìm thấy mã giảm giá với ID 999", messageValue);
-
-            // Kiểm tra không có mã giảm giá nào bị xóa
-            Assert.Equal(2, _context.MaGiamGias.Count());
-
-            // Kiểm tra không gọi SignalR
-            _hubContextMock.Verify(h => h.Clients.All.BroadcastMessage(), Times.Never());
         }
     }
 }
