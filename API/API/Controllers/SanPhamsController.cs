@@ -31,12 +31,12 @@ namespace API.Controllers
         [HttpPost("size/{id}")]
         public async Task<ActionResult> Size(int idLoai)
         {
-            var resuft = _context.Sizes.Where(d => d.Id_Loai == idLoai).Select(
+            var result = _context.Sizes.Where(d => d.Id_Loai == idLoai).Select(
                 d => new TenSizeLoai
                 {
                     SizeLoaiTen = d.TenSize
                 });
-            return Json(await resuft.FirstOrDefaultAsync());
+            return Json(await result.FirstOrDefaultAsync());
         }
         [HttpPost("mau/{id}")]
         public async Task<ActionResult<IEnumerable<MauSac>>> Mau(int idLoai)
@@ -46,21 +46,21 @@ namespace API.Controllers
         [HttpPost("like")]
         public async Task<ActionResult> LikeSanPham(UserLike userlike)
         {
-            var resuft = await _context.UserLikes.Where(d => d.IdSanPham == userlike.IdSanPham && d.IdUser == userlike.IdUser).FirstOrDefaultAsync();
-            if (resuft == null)
+            var result = await _context.UserLikes.Where(d => d.IdSanPham == userlike.IdSanPham && d.IdUser == userlike.IdUser).FirstOrDefaultAsync();
+            if (result == null)
             {
-                resuft = new UserLike
+                result = new UserLike
                 {
                     IdSanPham = userlike.IdSanPham,
                     IdUser = userlike.IdUser,
                 };
-                _context.Add(resuft);
+                _context.Add(result);
                 _context.SaveChanges();
                 return Json(1);
             }
             else
             {
-                _context.Remove(resuft);
+                _context.Remove(result);
                 _context.SaveChanges();
                 return Json(2);
             }
@@ -68,7 +68,7 @@ namespace API.Controllers
         [HttpPost("dslike")]
         public async Task<ActionResult> ListLikeSanPham(UserLike userlike)
         {
-            var resuft = _context.UserLikes.Where(d => d.IdUser == userlike.IdUser).Select(
+            var result = _context.UserLikes.Where(d => d.IdUser == userlike.IdUser).Select(
                 d => new SanPhamLike
                 {
                     id = d.Id,
@@ -76,7 +76,7 @@ namespace API.Controllers
                     ten = _context.SanPhams.Where(s => s.Id == d.IdSanPham).Select(s => s.Ten).FirstOrDefault(),
                     gia = (decimal)_context.SanPhams.Where(s => s.Id == d.IdSanPham).Select(s => s.GiaBan).FirstOrDefault(),
                 });
-            return Json(await  resuft.ToListAsync());
+            return Json(await result.ToListAsync());
         }
         [HttpPost("deletelike/{id}")]
         public async Task<ActionResult> DeleteLike(int id)
@@ -89,14 +89,14 @@ namespace API.Controllers
         [HttpPost("review")]
         public async Task<ActionResult> Review(UserComment usercomment)
         {
-            var resuft = new UserComment
+            var result = new UserComment
             {
                 NgayComment = DateTime.Now,
                 IdSanPham = usercomment.IdSanPham,
                 Content = usercomment.Content,
                 IdUser = usercomment.IdUser,
             };
-            _context.Add(resuft);
+            _context.Add(result);
             _context.SaveChanges();
             var listcomment = _context.UserComments.Where(d => d.IdSanPham == usercomment.IdSanPham).Select(
                 d => new Review
@@ -124,8 +124,8 @@ namespace API.Controllers
         [HttpPost("checklike")]
         public async Task<ActionResult> checkLikeSanPham(UserLike userlike)
         {
-            var resuft = await _context.UserLikes.Where(d => d.IdSanPham == userlike.IdSanPham && d.IdUser == userlike.IdUser).FirstOrDefaultAsync();
-            if (resuft == null)
+            var result = await _context.UserLikes.Where(d => d.IdSanPham == userlike.IdSanPham && d.IdUser == userlike.IdUser).FirstOrDefaultAsync();
+            if (result == null)
             {
                 return Json(1);
             }
@@ -238,14 +238,14 @@ namespace API.Controllers
             var imageSanPhams = _context.ImageSanPhams.ToArray().Where(s => s.IdSanPham == id);
             foreach (var i in imageSanPhams)
             {
-               FileHelper.DeleteFileOnTypeAndNameAsync("product", i.ImageName);
+                FileHelper.DeleteFileOnTypeAndNameAsync("product", i.ImageName);
             }
             if (upload.files != null)
             {
                 var file = upload.files.ToArray();
                 for (int i = 0; i < file.Length; i++)
                 {
-                    if (file[i].Length > 0 && file[i].Length< 5120)
+                    if (file[i].Length > 0 && file[i].Length < 5120)
                     {
                         listImage.Add(new ImageSanPham()
                         {
@@ -312,7 +312,7 @@ namespace API.Controllers
                     if (file[i].Length > 0 && file[i].Length < 5120)
                     {
                         var imageSanPham = new ImageSanPham();
-                        imageSanPham.ImageName = await FileHelper.UploadImageAndReturnFileNameAsync(upload, null, "product",upload.files.ToArray(), i);
+                        imageSanPham.ImageName = await FileHelper.UploadImageAndReturnFileNameAsync(upload, null, "product", upload.files.ToArray(), i);
                         imageSanPham.IdSanPham = sanpham.Id;
                         _context.ImageSanPhams.Update(imageSanPham);
                         await _context.SaveChangesAsync();
@@ -328,7 +328,7 @@ namespace API.Controllers
             var imageSanPhams = _context.ImageSanPhams.ToArray().Where(s => s.IdSanPham == id);
             foreach (var i in imageSanPhams)
             {
-                FileHelper.DeleteFileOnTypeAndNameAsync("product",i.ImageName);
+                FileHelper.DeleteFileOnTypeAndNameAsync("product", i.ImageName);
             }
             Models.SanPhamBienThe[] spbts;
             spbts = _context.SanPhamBienThes.Where(s => s.Id_SanPham == id).ToArray();
@@ -344,7 +344,8 @@ namespace API.Controllers
             }
             var CategoryConstraint = _context.Loais.Where(s => s.Id == id);
             var BrandConstraint = _context.NhanHieus.SingleOrDefaultAsync(s => s.Id == id);
-            if (CategoryConstraint != null || BrandConstraint != null) {
+            if (CategoryConstraint != null || BrandConstraint != null)
+            {
                 _context.SanPhams.Remove(sanPham);
             }
             Notification notification = new Notification()
@@ -388,18 +389,18 @@ namespace API.Controllers
             listImage = await _context.ImageSanPhams.Where(s => s.IdSanPham == id).ToListAsync();
             List<SanPhamBienTheMauSize> listSPBT;
             var temp = from s in _context.SanPhamBienThes
-                      join z in _context.Sizes
-                      on s.SizeId equals z.Id
-                      join m in _context.MauSacs
-                      on s.Id_Mau equals m.Id
-                      select new SanPhamBienTheMauSize()
-                      {
-                          Id = s.Id,
-                          SoLuongTon = s.SoLuongTon,
-                          TenMau = m.MaMau,
-                          TenSize = z.TenSize,
-                          Id_SanPham = s.Id_SanPham,
-                      };
+                       join z in _context.Sizes
+                       on s.SizeId equals z.Id
+                       join m in _context.MauSacs
+                       on s.Id_Mau equals m.Id
+                       select new SanPhamBienTheMauSize()
+                       {
+                           Id = s.Id,
+                           SoLuongTon = s.SoLuongTon,
+                           TenMau = m.MaMau,
+                           TenSize = z.TenSize,
+                           Id_SanPham = s.Id_SanPham,
+                       };
             listSPBT = await temp.Where(s => s.Id_SanPham == id).ToListAsync();
             var kb = from s in _context.SanPhams
                      join spbt in _context.SanPhamBienThes
@@ -420,7 +421,7 @@ namespace API.Controllers
                          Tag = s.Tag,
                          KhuyenMai = s.KhuyenMai,
                          MoTa = s.MoTa,
-                         GioiTinh=s.GioiTinh,
+                         GioiTinh = s.GioiTinh,
                          HuongDan = s.HuongDan,
                          TenNhaCungCap = ncc.Ten,
                          ThanhPhan = s.ThanhPhan,
@@ -439,7 +440,7 @@ namespace API.Controllers
         [HttpGet("topsanphammoi")]
         public async Task<ActionResult<IEnumerable<SanPhamLoaiThuongHieu>>> DanhSachHangMoi()
         {
-            var kb =  _context.SanPhams.Select(
+            var kb = _context.SanPhams.Select(
                    s => new SanPhamLoaiThuongHieu()
                    {
                        Id = s.Id,
@@ -451,14 +452,14 @@ namespace API.Controllers
                        HuongDan = s.HuongDan,
                        GioiTinh = s.GioiTinh,
                        ThanhPhan = s.ThanhPhan,
-                       TrangThaiSanPham = s.TrangThaiSanPham,                   
+                       TrangThaiSanPham = s.TrangThaiSanPham,
                        TrangThaiHoatDong = s.TrangThaiHoatDong,
                        Id_Loai = s.Id_Loai,
                        Id_NhanHieu = s.Id_NhanHieu,
                        TenLoai = _context.Loais.Where(d => d.Id == s.Id_Loai).Select(d => d.Ten).FirstOrDefault(),
                        TenNhanHieu = _context.NhanHieus.Where(d => d.Id == s.Id_NhanHieu).Select(d => d.Ten).FirstOrDefault(),
                        Image = _context.ImageSanPhams.Where(q => q.IdSanPham == s.Id).Select(q => q.ImageName).FirstOrDefault(),
-                   }).Take(20).Where(s=>s.TrangThaiSanPham=="new"&&s.TrangThaiHoatDong==true);
+                   }).Take(20).Where(s => s.TrangThaiSanPham == "new" && s.TrangThaiHoatDong == true);
             return await kb.ToListAsync();
         }
         [HttpPost("sapxepsanpham")]

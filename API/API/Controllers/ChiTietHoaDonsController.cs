@@ -23,7 +23,7 @@ namespace API.Controllers
         public async Task<ActionResult<IEnumerable<ChiTietHoaDon>>> ChiTetHoaDons()
         {
             return await _context.ChiTietHoaDons.ToListAsync();
-        }
+        }  
         [HttpPost("chitiethoadon/{id}")]
         public async Task<ActionResult> ChitietHoaDon(int id)
         {
@@ -35,10 +35,10 @@ namespace API.Controllers
                     Soluong = d.Soluong,
                     Mau = d.Mau,
                     Size = d.Size,
-                    SanPham = _context.SanPhams.Where(t => t.Id == d.Id_SanPham).FirstOrDefault()
-                }
-                );
-            return Json(await resuft.FirstOrDefaultAsync());
+                    SanPham = _context.SanPhams.FirstOrDefault(t => t.Id == d.Id_SanPham)
+                });
+
+            return Json(await resuft.ToListAsync());
         }
         [HttpPost("huydon/{id}")]
         public async Task<ActionResult> HuyDon(int id)

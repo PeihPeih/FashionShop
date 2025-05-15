@@ -14,7 +14,7 @@ using API.Helpers;
 using Xunit;
 using Microsoft.AspNetCore.SignalR;
 
-namespace API.Tests
+namespace API.Test
 {
     public class HoaDonsControllerTest
     {
