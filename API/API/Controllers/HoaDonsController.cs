@@ -3,15 +3,11 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using MimeKit;
-using OfficeOpenXml;
-using Syncfusion.XlsIO;
+
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Net.Http;
-using System.Threading.Tasks;
+using System.Threading.Tasks;   
 using API.Data;
 using API.Dtos;
 using API.Helpers;
@@ -74,12 +70,6 @@ namespace API.Controllers
                 resuft.User = await _context.AppUsers
                     .Where(d => d.Id == resuft.Id_User)
                     .FirstOrDefaultAsync();
-
-                // Kiểm tra nếu không tìm thấy người dùng
-                if (resuft.User == null)
-                {
-                    return NotFound(new { message = $"Không tìm thấy người dùng với ID {resuft.Id_User}" });
-                }
 
                 // Trả về kết quả dưới dạng JSON
                 return Json(resuft);
