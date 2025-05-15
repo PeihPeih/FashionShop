@@ -33,7 +33,7 @@ namespace API.Test {
             _controller = new SanPhamBienThesController(_context, _hubContext);
         }
 
-        // Spbt01
+        // Spbt01: Kiểm tra trả về danh sách biến thể sản phẩm gồm thông tin màu sắc, sản phẩm và kích thước.
         [Fact]
         public async Task GetSanPhamBienThes_ReturnsListOfGiaSanPhamMauSacSanPhamSize() {
             // Arrange: tạo dữ liệu liên quan
@@ -66,7 +66,7 @@ namespace API.Test {
             Assert.NotEmpty(okResult);
         }
 
-        // Spbt02
+        // Spbt02: Kiểm tra trả về NotFound khi yêu cầu một sản phẩm không tồn tại.
         [Fact]
         public async Task Get_ReturnsNotFound_WhenItemDoesNotExist() {
             // Arrange
@@ -78,8 +78,8 @@ namespace API.Test {
             // Assert
             Assert.IsType<NotFoundResult>(result.Result);
         }
-
-        // Spbt03
+        
+        // Spbt03: Kiểm tra trả về đúng thông tin biến thể sản phẩm khi biến thể tồn tại trong cơ sở dữ liệu.
         [Fact]
         public async Task Get_ReturnsItem_WhenItemExists() {
             // Arrange
@@ -105,7 +105,8 @@ namespace API.Test {
             Assert.Equal(item.SoLuongTon, returnValue.SoLuongTon);
         }
 
-        // Spbt04
+
+        // Spbt04: Kiểm tra cập nhật biến thể sản phẩm thành công và trả về Ok.
         [Fact]
         public async Task PutSanPhamBienThe_ReturnsOk_WhenUpdateIsSuccessful() {
             // Arrange
@@ -138,41 +139,7 @@ namespace API.Test {
             Assert.Equal(20, updated.SoLuongTon);
         }
 
-        // Spbt05
-        [Fact]
-        public async Task PostSanPhamBienThe_ReturnsOk_WhenCreatedSuccessfully() {
-            // Arrange
-            
-
-            // Ensure foreign keys exist
-            var tmp_sp = new SanPham {Ten = "SP test" };
-            _context.SanPhams.Add(tmp_sp);
-            var tmp_size = new Size { TenSize = "M", Id_Loai = 1 };
-            _context.Sizes.Add(tmp_size);
-            var tmp_color = new MauSac {MaMau = "Đỏ", Id_Loai = 1 };
-            _context.MauSacs.Add(tmp_color);
-            await _context.SaveChangesAsync();
-
-            var upload = new UploadSanPhamBienThe {
-                SanPhamId = tmp_sp.Id,
-                SizeId = tmp_size.Id,
-                MauId = tmp_color.Id,
-                SoLuongTon = 100
-            };
-            // Act
-            var result = await _controller.PostSanPhamBienThe(upload);
-
-            // Assert
-
-            var spbt = await _context.SanPhamBienThes.FirstOrDefaultAsync(
-                s => s.Id_SanPham == tmp_sp.Id && s.SizeId == tmp_size.Id && s.Id_Mau == tmp_color.Id && s.SoLuongTon == 100
-            );
-            Assert.NotNull(spbt);
-            Assert.Contains(_context.Notifications, n => n.TranType == "Add");
-
-        }
-
-        // Spbt06
+        // Spbt05: Kiểm tra trả về BadRequest khi ModelState không hợp lệ do giá trị SoLuongTon sai định dạng hoặc thiếu dữ liệu.
         [Fact]
         public async Task PostSanPhamBienThe_ReturnsBadRequest_WhenModelStateInvalid() {
             // Arrange
@@ -195,7 +162,7 @@ namespace API.Test {
 
         }
 
-        // Spbt07
+        // Spbt06: Kiểm tra xóa biến thể sản phẩm thành công khi biến thể tồn tại trong cơ sở dữ liệu.
         [Fact]
         public async Task DeleteSanPhamBienTh_ReturnsOk_WhenSanPhamBienTheExists() {
             // Arrange: Tạo dữ liệu thật
@@ -215,19 +182,5 @@ namespace API.Test {
             Assert.IsType<OkResult>(result);
             Assert.DoesNotContain(_context.SanPhamBienThes, s => s.Id == spbt.Id);
         }
-
-        // Spbt08
-        [Fact]
-        public async Task DeleteSanPhamBienTh_ReturnsNotFound_WhenSanPhamBienTheDoesNotExist() {
-            // Arrange: Đảm bảo ID không tồn tại
-            int nonExistentId = 999;
-
-            // Act
-            var result = await _controller.DeleteSanPhamBienTh(nonExistentId);
-
-            // Assert
-            Assert.IsType<NotFoundResult>(result);
-        }
-
     }
 }

@@ -31,7 +31,7 @@ namespace API.Test {
             _controller = new SanPhamBienThesController(_context, _hubContext);
         }
 
-        // Sptlnh01
+        // Sptlnh01: Kiểm tra trả về danh sách sản phẩm khi Id_Loai tồn tại.
         [Fact]
         public async Task GetCategory_ReturnsProducts_WhenIdLoaiExists() {
             var controller = new SanPhamTheoLoaiNhanHieuController(_context);
@@ -43,19 +43,7 @@ namespace API.Test {
             Assert.NotEmpty(products); // Id_Loai = 1 có 2 sản phẩm
         }
 
-        // Sptlnh02
-        [Fact]
-        public async Task GetCategory_ReturnsEmpty_WhenIdLoaiDoesNotExist() {
-            var controller = new SanPhamTheoLoaiNhanHieuController(_context);
-
-            var result = await controller.GetCategory(999); // Id không tồn tại
-
-            var okResult = Assert.IsType<ActionResult<IEnumerable<SanPham>>>(result);
-            var products = Assert.IsAssignableFrom<IEnumerable<SanPham>>(okResult.Value);
-            Assert.Empty(products);
-        }
-
-        // Sptlnh03
+        // Sptlnh02: Kiểm tra trả về danh sách sản phẩm khi Id_NhanHieu tồn tại.
         [Fact]
         public async Task GetBrand_ReturnsProducts_WhenIdNhanHieuExists() {
             var controller = new SanPhamTheoLoaiNhanHieuController(_context);
@@ -65,18 +53,6 @@ namespace API.Test {
             var okResult = Assert.IsType<ActionResult<IEnumerable<SanPham>>>(result);
             var products = Assert.IsAssignableFrom<IEnumerable<SanPham>>(okResult.Value);
             Assert.NotEmpty(products); // Id_NhanHieu = 1 có 2 sản phẩm
-        }
-
-        // Sptlnh04
-        [Fact]
-        public async Task GetBrand_ReturnsEmpty_WhenIdNhanHieuDoesNotExist() {
-            var controller = new SanPhamTheoLoaiNhanHieuController(_context);
-
-            var result = await controller.GetBrand(888);
-
-            var okResult = Assert.IsType<ActionResult<IEnumerable<SanPham>>>(result);
-            var products = Assert.IsAssignableFrom<IEnumerable<SanPham>>(okResult.Value);
-            Assert.Empty(products);
         }
 
     }

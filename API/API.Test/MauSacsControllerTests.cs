@@ -34,8 +34,7 @@ namespace API.Test {
             _controller = new MauSacsController(_context, _hubContext);
         }
 
-        // ---------------------- GET ALL ------------------------
-        // Mau01: Get all
+        // Mau01: Kiểm tra trả về dữ liệu kết hợp giữa MauSac và Loai khi có dữ liệu.
         [Fact]
         public async Task GetMauSacs_ReturnsJoinedData_WhenDataExists() {
             // Arrange
@@ -56,7 +55,7 @@ namespace API.Test {
             Assert.NotEmpty(data);
         }
 
-        // Mau02: Return list
+        // Mau02: Kiểm tra trả về danh sách màu khi có dữ liệu phù hợp.
         [Fact]
         public void GetListMauSac_ReturnsColorList() {
             // Arrange
@@ -79,7 +78,7 @@ namespace API.Test {
             Assert.NotEmpty(data);
         }
 
-        // Mau03: Get loai mau sac
+        // Mau03: Kiểm tra trả về dữ liệu kết hợp giữa màu sắc và loại khi có dữ liệu.
         [Fact]
         public async Task GetMauSacLoai_ReturnsCombinedData() {
             // Arrange
@@ -100,8 +99,7 @@ namespace API.Test {
             Assert.NotEmpty(data);
         }
 
-        // ------------------------- PUT ----------------------
-        // Mau04: id ton tai
+        // Mau04: Kiểm tra cập nhật màu sắc thành công khi dữ liệu hợp lệ.
         [Fact]
         public async Task PutMauSac_ReturnsOk_WhenUpdateIsSuccessful() {
             // Arrange
@@ -122,7 +120,7 @@ namespace API.Test {
             Assert.Equal(2, updated.Id_Loai);
         }
 
-        // Mau05: Id k ton tai
+        // Mau05: Kiểm tra trả về NotFound khi cập nhật màu sắc không tồn tại
         [Fact]
         public async Task PutMauSac_ReturnsNotFound_WhenMauSacDoesNotExist() {
             // Arrange
@@ -136,8 +134,7 @@ namespace API.Test {
             var notFound = Assert.IsType<NotFoundResult>(result);
         }
 
-        // ---------------------- GET BY ID -----------------------
-        // Mau06: Id ton tai
+        // Mau06: Kiểm tra trả về đúng thông tin màu sắc khi ID tồn tại.
         [Fact]
         public async Task GetMauSac_ReturnsMauSac_WhenIdExists() {
             // Arrange
@@ -156,7 +153,7 @@ namespace API.Test {
             Assert.Equal(mausac.Id_Loai, value.Id_Loai);
         }
 
-        // Mau07: Id ko ton tai
+        // Mau07: Kiểm tra trả về NotFound khi ID màu sắc không tồn tại.
         [Fact]
         public async Task GetMauSac_ReturnsNotFound_WhenIdDoesNotExist() {
             // Act
@@ -166,8 +163,7 @@ namespace API.Test {
             var notFoundResult = Assert.IsType<NotFoundResult>(result.Result);
         }
 
-        // ------------------------ POST -----------------------
-        // Mau08: Post khi giá trị hợp lệ
+        // Mau08: Kiểm tra thêm mới màu sắc thành công và tạo thông báo tương ứng.
         [Fact]
         public async Task PostMauSac_ReturnsOk_AndCreatesMauSacAndNotification() {
             // Arrange
@@ -191,8 +187,7 @@ namespace API.Test {
             Assert.Equal("Add", notification.TranType);
         }
 
-        // ------------------ DELETE --------------------
-        // Mau09: Id hợp lệ
+        // Mau09: Kiểm tra xóa màu sắc thành công, dữ liệu bị xóa và tạo thông báo tương ứng.
         [Fact]
         public async Task DeleteMauSac_ReturnsOk_AndDeletesMauSacAndCreatesNotification() {
             // Arrange
@@ -214,7 +209,7 @@ namespace API.Test {
             Assert.Equal("Delete", notification.TranType);
         }
 
-        // Mau10: Id ko hop le
+        // Mau10: Kiểm tra trả về NotFound khi xóa màu sắc với ID không tồn tại.
         [Fact]
         public async Task DeleteMauSac_ReturnsNotFound_WhenIdDoesNotExist() {
             // Act
