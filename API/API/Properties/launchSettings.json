@@ -14,7 +14,7 @@
       "launchBrowser": true,
       "launchUrl": "https://localhost:44302",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": " Development"
+        "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
     "WSL 2": {

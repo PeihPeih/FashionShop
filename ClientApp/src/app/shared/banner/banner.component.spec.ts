@@ -5,9 +5,9 @@ describe('BannerComponent', () => {
   let fixture: ComponentFixture<BannerComponent>;
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ BannerComponent ]
+      declarations: [BannerComponent]
     })
-    .compileComponents();
+      .compileComponents();
   });
   beforeEach(() => {
     fixture = TestBed.createComponent(BannerComponent);

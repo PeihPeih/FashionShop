@@ -92,19 +92,25 @@ namespace API
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public async void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
         {
-            if (env.IsDevelopment())
+            Console.WriteLine($"ENV: {env.EnvironmentName}");
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
             {
-                app.UseDeveloperExceptionPage();
-                app.UseSwagger();
-                app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "WebAppService v1"));
-            }
-            else
-            {
-                app.UseHttpsRedirection();
-                app.UseExceptionHandler("/Home/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-                app.UseHsts();
-            }
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "WebAppService v1");
+            });
+            //if (env.IsDevelopment())
+            //{
+            //    app.UseDeveloperExceptionPage();
+            //    app.UseSwagger();
+            //    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "WebAppService v1"));
+            //}
+            //else
+            //{
+            //    app.UseHttpsRedirection();
+            //    app.UseExceptionHandler("/Home/Error");
+            //    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+            //    app.UseHsts();
+            //}
             app.UseMiddleware<ExceptionMiddleware>();
             app.UseStaticFiles();
             app.UseHttpsRedirection();
@@ -136,7 +142,7 @@ namespace API
                 endpoints.MapControllers();
             });
             //seed db
-            await SeedData.Seed(app);
+            //await SeedData.Seed(app);
         }
     }
 }
