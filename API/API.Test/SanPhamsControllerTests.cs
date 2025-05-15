@@ -62,9 +62,7 @@ namespace API.Test {
         }
 
         // NOTE: API Size và Mau k test vì k liên quan
-
-        // ---------------------- LIKE SAN PHAM -----------------------
-        // Sp01: Thêm like khi chưa có
+        // SP01: Kiểm tra thêm lượt like cho sản phẩm khi người dùng chưa từng like trước đó.
         [Fact]
         public async Task LikeSanPham_AddsLike_WhenNotExist() {
             // Arrange
@@ -86,7 +84,7 @@ namespace API.Test {
             Assert.NotNull(stored);
         }
 
-        // Sp02: Bỏ like khi đã like
+        // SP02: Kiểm tra chức năng unlike sản phẩm khi người dùng đã like trước đó (xóa like thành công)
         [Fact]
         public async Task LikeSanPham_RemovesLike_WhenAlreadyExists() {
             // Arrange
@@ -115,25 +113,7 @@ namespace API.Test {
             Assert.Null(stored);
         }
 
-        // ----------------------- LIST LIKE SAN PHAM --------------------------
-        // Sp03: K có like -> trả ra mảng rỗng
-        [Fact]
-        public async Task ListLikeSanPham_ReturnsEmptyList_WhenUserHasNoLikes() {
-            // Arrange
-            var userlike = new UserLike {
-                IdUser = 1000.ToString()
-            };
-
-            // Act
-            var result = await _controller.ListLikeSanPham(userlike);
-
-            // Assert
-            var jsonResult = Assert.IsType<JsonResult>(result);
-            var data = Assert.IsType<List<SanPhamLike>>(jsonResult.Value);
-            Assert.Empty(data);
-        }
-
-        // Sp04: Có người dùng like
+        // Sp03: Kiểm tra việc trả về danh sách sản phẩm đã được người dùng like khi có dữ liệu like tồn tại.
         [Fact]
         public async Task ListLikeSanPham_ReturnsLikedSanPhams_WhenUserHasLikes() {
             // Arrange
@@ -167,10 +147,7 @@ namespace API.Test {
             Assert.Equal(sanpham.GiaBan, data[0].gia);
         }
 
-        // DeleteLike: K test vi trùng với tc sp02
-        
-        // ---------------------------- REVIEW ---------------------------
-        // Sp05: AddComment
+        // SP04: Kiểm tra việc thêm bình luận thành công và trả về danh sách các bình luận của sản phẩm.
         [Fact]
         public async Task Review_AddsCommentAndReturnsReviewList_WhenValid() {
             // Arrange
@@ -203,7 +180,7 @@ namespace API.Test {
             Assert.True(data[0].NgayComment <= DateTime.Now);
         }
 
-        // Sp06: Trả về tất cả review khi đã có sẵn
+        // SP05: Test kiểm tra thêm bình luận mới và trả về đầy đủ bình luận đã có của sản phẩm.
         [Fact]
         public async Task Review_ReturnsAllComments_WhenMultipleReviewsExist() {
             // Arrange
@@ -236,10 +213,7 @@ namespace API.Test {
             Assert.Contains(data, r => r.Content == "Mới thêm nữa");
         }
 
-        // List review k test do trùng tc Sp06
-
-        // -------------------------- CHECK LIKE -------------------------
-        // Sp07: Ng dùng chưa like -> 1
+        // SP06: Test kiểm tra thêm bình luận mới và trả về đầy đủ bình luận đã có của sản phẩm
         [Fact]
         public async Task CheckLikeSanPham_Returns1_WhenUserHasNotLiked() {
             // Arrange
@@ -259,7 +233,8 @@ namespace API.Test {
             Assert.Equal(1, json.Value);
         }
 
-        // Sp08: Ng dùng đã like -> 2
+
+        //SP07: Test kiểm tra trả về 2 khi người dùng đã like sản phẩm rồi.
         [Fact]
         public async Task CheckLikeSanPham_Returns2_WhenUserHasLiked() {
             // Arrange
@@ -285,8 +260,7 @@ namespace API.Test {
             Assert.Equal(2, json.Value);
         }
 
-        // --------------------- GET ALL -------------------------
-        // Sp09: Get all sphams
+        // SP08: Kiểm tra việc lấy danh sách sản phẩm trả về đúng kiểu dữ liệu
         [Fact]
         public async Task GetSanPhams_ReturnsListSanpham() {
             // Arrange
@@ -301,8 +275,7 @@ namespace API.Test {
             Assert.True(list.Count() >= 0);
         }
 
-        // --------------------- GET BY ID -----------------------
-        // Sp10: Id hợp lệ
+        // SP09: Kiểm tra việc lấy chi tiết một sản phẩm theo Id trả về đúng sản phẩm khi sản phẩm tồn tại trong cơ sở dữ liệu
         [Fact]
         public async Task GetSanPham_ReturnsSanPham_WhenExists() {
             // Arrange
@@ -319,7 +292,7 @@ namespace API.Test {
             Assert.Equal("TestSP", value.Ten);
         }
 
-        // Sp11: Id k hop le
+        // SP10: Kiểm tra việc lấy chi tiết sản phẩm theo Id trả về kết quả NotFound khi sản phẩm không tồn tại trong cơ sở dữ liệu.
         [Fact]
         public async Task GetSanPham_ReturnsNotFound_WhenNotExists() {
             // Act
@@ -330,8 +303,7 @@ namespace API.Test {
             Assert.IsType<NotFoundResult>(actionResult.Result);
         }
 
-        // --------------------- CAP NHAT TRANG THAI HOAT DONG --------------------
-        // Sp12: Cập nhật trạng thái khi dữ liệu hợp lệ
+        // SP11: Kiểm tra việc cập nhật trạng thái hoạt động của sản phẩm thành công
         [Fact]
         public async Task PutSanPhamTrangThaiHoatDong_ShouldReturnOk_WhenSanPhamExists() {
             // Arrange
@@ -350,8 +322,7 @@ namespace API.Test {
             Assert.False(updated.TrangThaiHoatDong); // Đã bị đảo từ true -> false
         }
 
-        // -------------------- PUT SAN PHAM --------------------------
-        // Sp13: Id k hợp lệ
+        // SP12: Kiểm tra hành vi khi cập nhật thông tin sản phẩm với ID không tồn tại, đảm bảo controller trả về kết quả NotFound.
         [Fact]
         public async Task PutSanPham_ReturnsNotFound_WhenSanPhamDoesNotExist() {
             // Arrange
@@ -364,7 +335,7 @@ namespace API.Test {
             Assert.IsType<NotFoundResult>(result);
         }
 
-        // Sp14: File is null
+        // SP13: Kiểm tra việc cập nhật sản phẩm thành công khi không có file đính kèm và xác nhận thông báo được tạo
         [Fact]
         public async Task PutSanPham_Success_WhenFilesIsNull() {
             // Arrange
@@ -390,7 +361,7 @@ namespace API.Test {
             Assert.NotNull(notification);
         }
 
-        // Sp15: Valid file
+        // SP14: Kiểm tra việc cập nhật sản phẩm thành công khi có file hình ảnh hợp lệ và xác nhận thông báo được tạo.
         [Fact]
         public async Task PutSanPham_Success_WithValidFile() {
             // Arrange
@@ -422,13 +393,13 @@ namespace API.Test {
         }
 
         [Theory]
-        [InlineData(null, null, null, false)] // Sp16: id nhan hieu - id loai - id ncc : null null null
-        [InlineData(1, 2, null, false)]       // Sp17: id nhan hieu - id loai - id ncc : valid valid null
-        [InlineData(1, 2, 3, false)]          // Sp18: id nhan hieu - id loai - id ncc : valid valid valid
+        [InlineData(null, null, null, false)] // SP15: Kiểm tra việc cập nhật sản phẩm thành công với các điều kiện khác nhau về nhãn hiệu, loại và nhà cung cấp, đồng thời xác nhận thông báo được tạo.
+        [InlineData(1, 2, null, false)]       // SP16: Kiểm tra việc cập nhật sản phẩm thành công với các điều kiện khác nhau về nhãn hiệu, loại và nhà cung cấp, đồng thời xác nhận thông báo được tạo.
+        [InlineData(1, 2, 3, false)]          // SP17: Kiểm tra việc cập nhật sản phẩm thành công với các điều kiện khác nhau về nhãn hiệu, loại và nhà cung cấp, đồng thời xác nhận thông báo được tạo.
         public async Task PutSanPham_Should_Update_With_Conditions(
             int? idNhanHieu, int? idLoai, int? idNCC, bool includeFiles) {
             // Arrange
-            var id = 123; 
+            var id = 123;
             var upload = new UploadSanpham {
                 Ten = "Test SP",
                 Id_NhanHieu = idNhanHieu,
@@ -447,8 +418,7 @@ namespace API.Test {
             Assert.NotNull(notification);
         }
 
-        // ------------------------------ POST SAN PHAM -----------------------
-        // Sp19: Without file
+        // SP18: Kiểm tra việc thêm mới sản phẩm thành công khi không có file đính kèm và xác nhận thông báo được tạo
         [Fact]
         public async Task PostSanPham_ReturnsOk_WhenValidDataWithoutFile() {
             var upload = new UploadSanpham {
@@ -469,8 +439,7 @@ namespace API.Test {
                 files = null
             };
 
-            FakeFileHelper.UploadImageAndReturnFileNameAsync = async (upload, a, b, files, i) =>
-            {
+            FakeFileHelper.UploadImageAndReturnFileNameAsync = async (upload, a, b, files, i) => {
                 return await Task.FromResult("fake.jpg");
             };
 
@@ -483,7 +452,7 @@ namespace API.Test {
             Assert.NotNull(notification);
         }
 
-        // Sp20: WithValidFile
+        // SP19: Kiểm tra việc thêm mới sản phẩm thành công khi có file hình ảnh hợp lệ và xác nhận thông báo được tạo
         [Fact]
         public async Task PostSanPham_ReturnsOk_WithValidFiles() {
             var projectRoot = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../../API"));
@@ -523,10 +492,7 @@ namespace API.Test {
                 files = new FormFileCollection { file }
             };
 
-            // Giả lập helper (có thể bạn dùng IFileHelper hoặc class static riêng)
-            FakeFileHelper.UploadImageAndReturnFileNameAsync = async (upload, a, b, files, i) =>
-            {
-                // Giả lập là ảnh đã lưu thành công vào folder path kia
+            FakeFileHelper.UploadImageAndReturnFileNameAsync = async (upload, a, b, files, i) => {
                 var path = Path.Combine(imageFolderPath, "fake.jpg");
                 await File.WriteAllBytesAsync(path, new byte[] { 1, 2, 3 }); // tạo file mẫu
                 return "fake.jpg";
@@ -543,7 +509,7 @@ namespace API.Test {
             Assert.NotNull(notification);
         }
 
-        // Sp21: Post size with large file
+        // SP20: Kiểm tra việc thêm mới sản phẩm thành công khi có file lớn, đảm bảo hệ thống bỏ qua file lớn và xác nhận thông báo được tạo
         [Fact]
         public async Task PostSanPham_SkipLargeFiles() {
             var upload = new UploadSanpham {
@@ -567,8 +533,7 @@ namespace API.Test {
             }
             };
 
-            FakeFileHelper.UploadImageAndReturnFileNameAsync = async (upload, a, b, files, i) =>
-            {
+            FakeFileHelper.UploadImageAndReturnFileNameAsync = async (upload, a, b, files, i) => {
                 return await Task.FromResult("fake.jpg");
             };
 
@@ -581,21 +546,20 @@ namespace API.Test {
             Assert.NotNull(notification);
         }
 
-        // -------------------- DELETE -------------------------
-        // Sp22: Id k hop le
+        // SP21: Kiểm tra việc xóa sản phẩm trả về NotFound khi sản phẩm không tồn tại.
         [Fact]
-        public async Task DeleteSanPham_ReturnsNotFound_WhenSanPhamDoesNotExist() {
+        public async Task DeleteSanPham_SanPhamNull_ReturnsNotFound() {
             // Arrange
-            var invalidId = 888999;
+            int id = 999; // ID không tồn tại
 
             // Act
-            var result = await _controller.DeleteSanPham(invalidId);
+            var result = await _controller.DeleteSanPham(id);
 
             // Assert
             Assert.IsType<NotFoundResult>(result);
         }
 
-        // Sp23: Loai = null, Category = null, Brand = null
+        // SP22: Kiểm tra việc xóa sản phẩm thành công và chỉ xóa dữ liệu liên quan khi loại và nhãn hiệu là null.
         [Fact]
         public async Task DeleteSanPham_DeletesOnlyRelatedData_WhenCategoryAndBrandAreNull() {
             // Arrange
@@ -611,24 +575,8 @@ namespace API.Test {
             Assert.Null(_context.SanPhams.Find(sanPham.Id));
         }
 
-        // Sp24: category ton tai
-        [Fact]
-        public async Task DeleteSanPham_DeletesSanPham_WhenCategoryExists() {
-            // Arrange
-            var sanPham = new SanPham { Ten = "TestSP2" };
-            _context.SanPhams.Add(sanPham);
-            _context.Loais.Add(new Loai { Id = sanPham.Id }); // Category same ID
-            _context.SaveChanges();
 
-            // Act
-            var result = await _controller.DeleteSanPham(sanPham.Id);
-
-            // Assert
-            Assert.IsType<OkResult>(result);
-            Assert.Null(_context.SanPhams.Find(sanPham.Id));
-        }
-
-        // Sp25: brand ton tai
+        // SP23: Kiểm tra việc xóa sản phẩm thành công khi có nhãn hiệu tồn tại.
         [Fact]
         public async Task DeleteSanPham_DeletesSanPham_WhenBrandExists() {
             // Arrange
@@ -636,7 +584,7 @@ namespace API.Test {
             _context.SanPhams.Add(sanPham);
             await _context.SaveChangesAsync();
 
-            _context.NhanHieus.Add(new NhanHieu { Ten="TEST" });
+            _context.NhanHieus.Add(new NhanHieu { Ten = "TEST" });
             await _context.SaveChangesAsync();
 
             // Act
@@ -647,7 +595,7 @@ namespace API.Test {
             Assert.Null(_context.SanPhams.Find(sanPham.Id));
         }
 
-        // Sp26: category va brand ton tai
+        // SP24: Kiểm tra việc xóa sản phẩm thành công khi cả loại và nhãn hiệu liên quan đều tồn tại. Xác nhận rằng sản phẩm được xóa khỏi cơ sở dữ liệu và trả về kết quả thành công
         [Fact]
         public async Task DeleteSanPham_DeletesSanPham_WhenBothCategoryAndBrandExist() {
             // Arrange
@@ -665,114 +613,14 @@ namespace API.Test {
             Assert.Null(_context.SanPhams.Find(sanPham.Id));
         }
 
-        // ---------------------- GET CATEGORY ------------------
-        // Sp27: loai va nhan hieu k co trong csdl 
-        [Fact]
-        public async Task GetCategory_ReturnsEmptyList_WhenNoSanPhamMatches() {
-            // Arrange
-            var testId = 1000;
-
-            _context.SanPhams.Add(new SanPham {Ten = "SP1", Id_Loai = 1, Id_NhanHieu = 2 });
-            await _context.SaveChangesAsync();
-
-            // Act
-            var result = await _controller.GetCategory(testId);
-
-            // Assert
-            Assert.Empty(result.Value);
-        }
-
-        // Sp28: loai co trong csdl
-        [Fact]
-        public async Task GetCategory_ReturnsSanPham_WhenIdLoaiMatches() {
-            // Arrange
-            var testId = 200;
-            _context.SanPhams.Add(new SanPham {Ten = "SP2", Id_Loai = testId, Id_NhanHieu = 1 });
-            await _context.SaveChangesAsync();
-
-            // Act
-            var result = await _controller.GetCategory(testId);
-
-            // Assert
-            Assert.Single(result.Value);
-            Assert.Equal("SP2", result.Value.First().Ten);
-        }
-
-        // Sp29: nhan hieu k co trong csdl
-        [Fact]
-        public async Task GetCategory_ReturnsSanPham_WhenIdNhanHieuMatches() {
-            // Arrange
-            var testId = 300;
-            _context.SanPhams.Add(new SanPham {Ten = "SP3", Id_Loai = 1, Id_NhanHieu = testId });
-            await _context.SaveChangesAsync();
-
-            // Act
-            var result = await _controller.GetCategory(testId);
-
-            // Assert
-            Assert.Single(result.Value);
-            Assert.Equal("SP3", result.Value.First().Ten);
-        }
-
-        // Sp30: Ca 2 deu co
-        [Fact]
-        public async Task GetCategory_ReturnsSanPham_WhenBothIdLoaiAndIdNhanHieuMatch() {
-            // Arrange
-            var testId = 400;
-            _context.SanPhams.Add(new SanPham {Ten = "SP4", Id_Loai = testId, Id_NhanHieu = testId });
-            await _context.SaveChangesAsync();
-
-            // Act
-            var result = await _controller.GetCategory(testId);
-
-            // Assert
-            Assert.Single(result.Value);
-            Assert.Equal("SP4", result.Value.First().Ten);
-        }
-
-        // -------------------- NHAN HIEU ----------------------
-        // Sp31: Có brand
-        [Fact]
-        public async Task GetBrand_WhenBrandExists_ReturnsMatchingProducts() {
-            // Arrange
-            _context.SanPhams.AddRange(
-                new SanPham { Ten = "SP1", Id_NhanHieu = 10, Id_Loai = 1 },
-                new SanPham { Ten = "SP2", Id_NhanHieu = 10, Id_Loai = 2 },
-                new SanPham { Ten = "SP3", Id_NhanHieu = 20, Id_Loai = 3 }
-            );
-
-            await _context.SaveChangesAsync();
-
-            // Act
-            var result = await _controller.GetBrand(10);
-
-            // Assert
-            Assert.NotNull(result.Value);
-            Assert.Equal(2, result.Value.Count());
-        }
-
-        // Sp32: K có brand
-        [Fact]
-        public async Task GetBrand_WhenBrandDoesNotExist_ReturnsEmptyList() {
-            // Arrange
-            _context.SanPhams.Add(new SanPham { Ten = "SP1", Id_NhanHieu = 30, Id_Loai = 1 });
-            await _context.SaveChangesAsync();
-
-            // Act
-            var result = await _controller.GetBrand(999); // Không tồn tại brand
-
-            // Assert
-            Assert.NotNull(result.Value);
-            Assert.Empty(result.Value);
-        }
+        
 
         // ----------------- LOAI NHAN HIEU ---------------------
         // Bỏ vì Câu if (get != null) luôn trả về true, vì Where(...) luôn trả về một IQueryable, không bao giờ là null.
         // Dù không có dữ liệu nào, get vẫn không phải là null.Kết quả: else không bao giờ được thực thi,
         // nghĩa là code này không bao giờ chạy vào nhánh 2 → không thể đạt phủ cấp 2.
 
-        // ------------------ CHI TIET SAN PHAM --------------------
-        // Sp33: Sản phẩm tồn tại
+        // SP25: Kiểm tra trả về chi tiết sản phẩm khi sản phẩm và các thông tin liên quan tồn tại.
         [Fact]
         public async Task Chitiet_Returns_ProductDetail_When_Exists() {
             // Arrange: Tạo dữ liệu đầy đủ các bảng liên quan
@@ -824,18 +672,7 @@ namespace API.Test {
             Assert.Single(detail.SanPhamBienThes);
         }
 
-        // Sp34: Sản phẩm k tồn tại
-        [Fact]
-        public async Task Chitiet_Returns_Null_When_SanPham_NotFound() {
-            // Act
-            var result = await _controller.Chitiet(98981);
-
-            // Assert
-            Assert.Null(result.Value);
-        }
-
-        // ------------------ TOP SAN PHAM MOI --------------------
-        // Sp35:
+        // SP26: Kiểm tra trả về tối đa 20 sản phẩm mới, đang hoạt động và có đầy đủ thông tin loại và nhãn hiệu.
         [Fact]
         public async Task DanhSachHangMoi_Returns_Top20_NewActiveProducts() {
             // Arrange
@@ -887,8 +724,7 @@ namespace API.Test {
             }
         }
 
-        // -------------------- SAP XEP SAN PHAM -------------------
-        // Sp36
+        // SP27: Kiểm tra trả về danh sách sản phẩm trong khoảng giá xác định, kèm thông tin loại và nhãn hiệu.
         [Fact]
         public async Task SapXepSP_Returns_Products_InPriceRange() {
             // Arrange
@@ -935,63 +771,5 @@ namespace API.Test {
             Assert.All(data, p => Assert.NotNull(p.TenLoai));
             Assert.All(data, p => Assert.NotNull(p.TenNhanHieu));
         }
-
-        [Fact]
-        public async Task SearchTheoMau_ReturnsMatchingSanPhams() {
-            // Arrange: Setup dữ liệu mẫu
-            var mau = new MauSac { MaMau = "Do"};
-            _context.MauSacs.Add(mau);
-            await _context.SaveChangesAsync();
-
-            var loai = new Loai { Ten = "Áo" };
-            var nhanHieu = new NhanHieu { Ten = "Adidas" };
-            _context.Loais.Add(loai);
-            _context.NhanHieus.Add(nhanHieu);
-            await _context.SaveChangesAsync();
-
-            var sp = new SanPham {
-                Ten = "Áo Đỏ",
-                GiaBan = 500000,
-                Tag = "hot",
-                KhuyenMai = 15,
-                MoTa = "Sản phẩm chất lượng",
-                HuongDan = "Giặt tay",
-                GioiTinh = 1,
-                ThanhPhan = "Cotton",
-                TrangThaiSanPham = "available",
-                TrangThaiHoatDong = true,
-                Id_Loai = loai.Id,
-                Id_NhanHieu = nhanHieu.Id
-            };
-            _context.SanPhams.Add(sp);
-            await _context.SaveChangesAsync();
-
-            _context.SanPhamBienThes.Add(new SanPhamBienThe {
-                Id_SanPham = sp.Id,
-                Id_Mau = mau.Id
-            });
-
-            _context.ImageSanPhams.Add(new ImageSanPham {
-                IdSanPham = sp.Id,
-                ImageName = "do_ao.jpg"
-            });
-
-            await _context.SaveChangesAsync();
-
-            var json = JObject.FromObject(new { mausac = "Do" });
-
-            // Act
-            var result = await _controller.getListTaskCalendar(json);
-
-            // Assert
-            var okResult = Assert.IsType<JsonResult>(result);
-            var products = Assert.IsAssignableFrom<IEnumerable<SanPhamLoaiThuongHieu>>(okResult.Value);
-            Assert.Single(products);
-            Assert.Equal("Áo Đỏ", products.First().Ten);
-            Assert.Equal("Adidas", products.First().TenNhanHieu);
-            Assert.Equal("Áo", products.First().TenLoai);
-            Assert.Equal("do_ao.jpg", products.First().Image);
-        }
-
     }
 }

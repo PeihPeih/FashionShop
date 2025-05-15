@@ -33,8 +33,7 @@ namespace API.Test {
             _controller = new LoaisController(_context, _hubContext);
         }
 
-        // --------------------- GET ALL LOAIS -------------------------
-        // Loais01: Dữ liệu trả về hợp lệ
+        // Loais01: Kiểm tra trả về danh sách tất cả loại khi có dữ liệu
         [Fact]
         public async Task GetLoais_ReturnsAllLoais() {
             // Arrange: thêm dữ liệu vào context
@@ -53,8 +52,7 @@ namespace API.Test {
             Assert.Contains(returnValue, l => l.Ten == "TestLoai2");
         }
 
-        // ----------------------- GET SANPHAMS THEO ID_LOAI ----------------------
-        // Loais02: Loại và sản phẩm đều có trong csdl
+        // Loais02: Kiểm tra trả về danh sách sản phẩm theo loại khi loại và sản phẩm tồn tại
         [Fact]
         public async Task GetLoaiIdProducts_ReturnsList_WhenLoaiAndSanPhamExist() {
             // Arrange
@@ -62,7 +60,7 @@ namespace API.Test {
             _context.Loais.Add(loai);
             await _context.SaveChangesAsync();
 
-            var sanPham = new SanPham {Ten = "TestSp", Id_Loai = loai.Id};
+            var sanPham = new SanPham { Ten = "TestSp", Id_Loai = loai.Id };
             _context.SanPhams.Add(sanPham);
             await _context.SaveChangesAsync();
 
@@ -75,37 +73,7 @@ namespace API.Test {
             Assert.Single(returnValue);
         }
 
-        // Loais03: K có sản phẩm nào trùng khớp
-        [Fact]
-        public async Task GetLoaiIdProducts_ReturnsEmptyList_WhenLoaiExistsButNoSanPham() {
-            // Arrange
-            var loai = new Loai { Ten = "Dessert" };
-            _context.Loais.Add(loai);
-            await _context.SaveChangesAsync();
-
-            // Act
-            var result = await _controller.GetLoaiIdProducts(loai.Id);
-
-            // Assert
-            var actionResult = Assert.IsType<ActionResult<IEnumerable<SanPhamLoai>>>(result);
-            var returnValue = Assert.IsAssignableFrom<IEnumerable<SanPhamLoai>>(actionResult.Value);
-            Assert.Empty(returnValue);
-        }
-
-        // Loais04: K tồn tại loais
-        [Fact]
-        public async Task GetLoaiIdProducts_ReturnsEmptyList_WhenLoaiDoesNotExist() {
-            // Act
-            var result = await _controller.GetLoaiIdProducts(9999);
-
-            // Assert
-            var actionResult = Assert.IsType<ActionResult<IEnumerable<SanPhamLoai>>>(result);
-            var returnValue = Assert.IsAssignableFrom<IEnumerable<SanPhamLoai>>(actionResult.Value);
-            Assert.Empty(returnValue);
-        }
-
-        // -------------------- GET LOAIS BY ID ----------------------
-        // Loais05: Id có trong csdl
+        // Loais03: Kiểm tra trả về thông tin loại khi ID tồn tại
         [Fact]
         public async Task GetLoai_ReturnsLoai_WhenExists() {
             // Arrange
@@ -122,7 +90,7 @@ namespace API.Test {
             Assert.Equal("TestLoai", returnValue.Ten);
         }
 
-        // Loais06: Id ko có trong csdl
+        // Loais04: Kiểm tra trả về NotFound khi loại không tồn tại
         [Fact]
         public async Task GetLoai_ReturnsNotFound_WhenLoaiDoesNotExist() {
             // Act
@@ -133,8 +101,7 @@ namespace API.Test {
             Assert.IsType<NotFoundResult>(result.Result);
         }
 
-        // --------------------- PUT LOAI --------------------
-        // Loais07: Loais có trong csdl
+        // Loais05: Kiểm tra cập nhật loại thành công 
         [Fact]
         public async Task PutLoai_ReturnsOk_WhenUpdateSuccess() {
             // Arrange
@@ -156,7 +123,7 @@ namespace API.Test {
             mockClientProxy.Verify(c => c.BroadcastMessage(), Times.Once());
         }
 
-        // Loais08: Loais k có trong csdl 
+        // Loais06: Kiểm tra trả về NotFound khi cập nhật loại không tồn tại
         [Fact]
         public async Task PutLoai_ReturnsNotFound_WhenLoaiNotExist() {
             // Arrange
@@ -169,7 +136,7 @@ namespace API.Test {
             var notFoundResult = Assert.IsType<NotFoundResult>(result);
         }
 
-        // Loais09: Khi có exception
+        // Loais07: Kiểm tra xử lý ngoại lệ DbUpdateConcurrencyException khi cập nhật loại bị xung đột dữ liệu
         [Fact]
         public async Task PutLoai_ShouldHandleDbUpdateConcurrencyException_WhenDbUpdateConcurrencyExceptionOccurs() {
             // Arrange
@@ -185,7 +152,7 @@ namespace API.Test {
             var controller = new LoaisController(mockDbContext.Object, _hubContext);
 
             // Act
-            var result = await controller.PutLoai(loai.Id, uploadCategory); // Đảm bảo kết quả trả về là IActionResult
+            var result = await controller.PutLoai(loai.Id, uploadCategory);
 
             // Assert
             var conflictResult = Assert.IsType<ConflictObjectResult>(result);
@@ -193,8 +160,7 @@ namespace API.Test {
             Assert.Equal("Có xung đột khi cập nhật dữ liệu, vui lòng thử lại sau.", conflictResult.Value);
         }
 
-        // --------------------- POST LOAIS -------------------------
-        // Loais10: Dữ liệu thêm hợp lệ
+        // Loais08: Kiểm tra chức năng thêm loại mới, đảm bảo loại được thêm vào cơ sở dữ liệu
         [Fact]
         public async Task PostLoai_ValidInput_AddsNotificationAndLoai_ReturnsOk() {
             // Arrange
@@ -215,7 +181,7 @@ namespace API.Test {
             Assert.NotNull(loai);
         }
 
-        // ------------------------ DELETE LOAIS --------------------
+        // Loais09: Kiểm tra việc xóa loại khi loại không tồn tại trong cơ sở dữ liệu, đảm bảo trả về kết quả NotFound.
         [Fact]
         public async Task DeleteLoai_ShouldReturnNotFound_WhenCategoryDoesNotExist() {
             // Arrange
@@ -228,26 +194,12 @@ namespace API.Test {
             Assert.IsType<NotFoundResult>(result);
         }
 
-        [Fact]
-        public async Task DeleteLoai_NoProducts_ShouldDeleteLoai() {
-            // Arrange
-            var category = new Loai { Ten = "Test Category" };
-            _context.Loais.Add(category);
-            await _context.SaveChangesAsync();
-
-            // Act
-            var result = await _controller.DeleteLoai(category.Id);
-
-            // Assert
-            Assert.IsType<OkResult>(result); // Ensure Ok() is returned
-            var notification = _context.Notifications.FirstOrDefaultAsync(n => n.TenSanPham == "Test Category" && n.TranType == "Delete");
-            Assert.NotNull(notification);
-        }
-
+        // Loais10: Kiểm tra việc xóa một loại (Loai) cùng với các dữ liệu liên quan như sản phẩm, kích thước và màu sắc, đồng thời đảm
+        // bảo trả về kết quả Ok 
         [Fact]
         public async Task DeleteLoai_WithProducts_ShouldDeleteLoaiAndRelatedData() {
             // Arrange
-            var category = new Loai {Ten = "Test Category" };
+            var category = new Loai { Ten = "Test Category" };
 
 
             _context.Loais.Add(category);

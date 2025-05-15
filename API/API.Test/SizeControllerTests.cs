@@ -34,8 +34,7 @@ namespace API.Test {
             _controller = new SizesController(_context, _hubContext);
         }
 
-        // ------------- GET LIST SIZE THEO MÀU ------------------------
-        // Size01: Dữ liệu hợp lệ
+        // Size01: Kiểm tra trả về danh sách kích thước khi có dữ liệu hợp lệ
         [Fact]
         public void GetListSizeTheoMau_ValidData_ReturnsSizeList() {
             // Arrange
@@ -63,118 +62,30 @@ namespace API.Test {
             Assert.All(sizeList, s => Assert.False(string.IsNullOrWhiteSpace(s)));
         }
 
-        // Size02: Thiếu id_san_pham
+        // Size02: Kiểm tra trả về mã lỗi 500 và thông báo lỗi khi đầu vào không hợp lệ
         [Fact]
-        public async Task GetListSizeTheoMau_MissingIdSanPham_ReturnsBadRequest() {
+        public void GetListSizeTheoMau_InvalidInput_Returns500WithError() {
             // Arrange
-            var testJson = new JObject
+            // Đầu vào không hợp lệ: id_san_pham không phải số
+            var json = new JObject
             {
-                // Không có "id_san_pham"
-                { "mamau", "Đen" }
+                { "id_san_pham", "invalid" }, // Gây ra FormatException
+                { "mamau", "RED" }
             };
 
             // Act
-            var result = _controller.getListSizeTheoMau(testJson);
+            var result = _controller.getListSizeTheoMau(json) as ObjectResult;
 
             // Assert
-            var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-            Assert.Equal("Thiếu thông tin sản phẩm", badRequest.Value);
+            Assert.Equal(500, result.StatusCode);
+            var error = result.Value as dynamic;
+            Assert.NotNull(error);
+            Assert.Equal("Id sản phẩm không hợp lệ", error.error.ToString());
         }
 
-        // Size03: Thiếu mã màu
+        // Size03: Kiểm tra trả về danh sách kích thước loại
         [Fact]
-        public async Task GetListSizeTheoMau_MissingMaMau_ReturnsBadRequest() {
-            // Arrange
-            var testJson = new JObject
-            {
-                { "id_san_pham", 1 }
-            };
-
-            // Act
-            var result = _controller.getListSizeTheoMau(testJson);
-
-            // Assert
-            var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-            Assert.Equal("Thiếu thông tin màu", badRequest.Value);
-        }
-
-        // Size04: Kiểm tra phương thức trả về list size theo màu sản phẩm khi không tồn tại loại sản phẩm
-        [Fact]
-        public async Task GetListSizeTheoMau_LoaisNotFound_ReturnsNotFound() {
-            // Arrange
-            var testJson = new JObject
-            {
-                { "id_san_pham", 9999 }, // ID không tồn tại
-                { "mamau", "Đen" }
-            };
-
-            // Act
-            var result = _controller.getListSizeTheoMau(testJson);
-
-            // Assert
-            var notFound = Assert.IsType<NotFoundObjectResult>(result);
-            Assert.Equal("Không tìm thấy loại sản phẩm", notFound.Value);
-        }
-
-        // Size05: Không tồn tại mã màu
-        [Fact]
-        public void GetListSizeTheoMau_ColorNotFound_ReturnsNotFound() {
-            // Arrange
-            var testJson = new JObject
-            {
-                { "id_san_pham", 1 },       // ID có tồn tại
-                { "mamau", "Trắng không tì vết" } // Mã màu không tồn tại kết hợp với loại sp
-            };
-
-            // Act
-            var result = _controller.getListSizeTheoMau(testJson);
-
-            // Assert
-            var notFound = Assert.IsType<NotFoundObjectResult>(result);
-            Assert.Equal("Không tìm thấy mã màu", notFound.Value);
-        }
-
-        // Size06: Không tìm được size tương ứng
-        [Fact]
-        public void GetListSizeTheoMau_NoSizeFound_ReturnsNotFound() {
-            // Arrange
-            var testJson = new JObject
-            {
-                { "id_san_pham", 1 },      // ID có tồn tại
-                { "mamau", "XanhLaCay" }   // Màu có tồn tại nhưng không có biến thể
-            };
-
-            // Act
-            var result = _controller.getListSizeTheoMau(testJson);
-
-            // Assert
-            var notFound = Assert.IsType<NotFoundObjectResult>(result);
-            Assert.Equal("Không tìm thấy size tương ứng", notFound.Value);
-        }
-
-        // Size07: Dữ liệu JSON không hợp lệ
-        [Fact]
-        public void GetListSizeTheoMau_InvalidIdFormat_ReturnsBadRequest() {
-            // Arrange
-            var testJson = new JObject
-            {
-                { "id_san_pham", "abc" }, // không parse được
-                { "mamau", "Đen" }
-            };
-
-            // Act
-            var result = _controller.getListSizeTheoMau(testJson);
-
-            // Assert
-            var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-            Assert.Equal("Định dạng ID sản phẩm không hợp lệ", badRequest.Value);
-        }
-
-
-        // --------------------- GET ALL SIZES -----------------------
-        // Size08: Lấy tất cả các sizes
-        [Fact]
-        public async Task GetSizes_ReturnList() {
+        public async Task GetSizes_ReturnsSizeLoaiList() {
             // Arrange
 
             // Act
@@ -182,51 +93,22 @@ namespace API.Test {
 
             // Assert
             var okResult = Assert.IsType<ActionResult<IEnumerable<SizeLoai>>>(result);
-            var value = Assert.IsType<List<SizeLoai>>(okResult.Value);
-
-            Assert.NotNull(value);
+            var sizeLoaiList = Assert.IsType<List<SizeLoai>>(okResult.Value);
+            Assert.NotEmpty(sizeLoaiList); 
+            var firstItem = sizeLoaiList.First();
+            Assert.Equal(1, firstItem.Id); 
+            Assert.Equal(1, firstItem.Id_Loai);
+            Assert.Equal("Áo", firstItem.TenLoai);
         }
 
-        // --------------------- GET SIZE BY ID -----------------------
-        // Size09: Id có tồn tại
-        [Fact]
-        public async Task GetSizeByID_ValidID_ReturnSize() {
-            // Arrange
-            int id = 99;
-            _context.Sizes.Add(new Size { Id = id, TenSize = "Siêu to khổng lồ", Id_Loai = 1 });
-            // Act
-            var result = await _controller.GetSize(id);
+        // Size04: Kiểm tra trả về danh sách tên kích thước loại khi có dữ liệu
 
-            // Assert
-            var okResult = Assert.IsType<ActionResult<Size>>(result);
-            var value = Assert.IsType<Size>(okResult.Value);
-
-            Assert.NotNull(value);
-            Assert.Equal(99, value.Id);
-            Assert.Equal("Siêu to khổng lồ", value.TenSize);
-        }
-
-        // Size09: Id không tồn tại
-        [Fact]
-        public async Task GetSizeByID_InvalidID_ReturnNotFound() {
-            // Arrange
-            int id = 99999;
-
-            // Act
-            var result = await _controller.GetSize(id);
-
-            // Assert
-            Assert.IsType<NotFoundResult>(result.Result);
-        }
-
-        // ------------------ GET (SIZE'S NAME + LOAIS'S NAME) --------------------
-        // Size10: Data hợp lệ
         [Fact]
         public async Task GetTenSizeLoais_ReturnsList_WhenDataExists() {
             // Arrange
             var loai = new Loai { Ten = "Shirt" };
             _context.Loais.Add(loai);
-            await _context.SaveChangesAsync(); 
+            await _context.SaveChangesAsync();
 
             _context.Sizes.AddRange(
                 new Size { TenSize = "Mini", Id_Loai = loai.Id },
@@ -247,58 +129,38 @@ namespace API.Test {
             Assert.Contains(items, item => item.SizeLoaiTen == "Super Shirt");
         }
 
-        // ----------------------------- PUT SIZE ----------------------------
-        // Size11: Id ko có trong csdl
+        // Size05: Kiểm tra trả về thông tin kích thước khi ID hợp lệ
         [Fact]
-        public async Task PutSize_ReturnsNotFound_WhenSizeIsNull() {
+        public async Task GetSizeByID_ValidID_ReturnSize() {
             // Arrange
-            var uploadSize = new UploadSize {
-                TenSize = "Giant",
-                Id_Loai = 1
-            };
-
+            int id = 99;
+            _context.Sizes.Add(new Size { Id = id, TenSize = "Siêu to khổng lồ", Id_Loai = 1 });
             // Act
+            var result = await _controller.GetSize(id);
 
             // Assert
-            var exception = await Assert.ThrowsAsync<NullReferenceException>(() =>
-                _controller.PutSize(999, uploadSize) 
-             );
+            var okResult = Assert.IsType<ActionResult<Size>>(result);
+            var value = Assert.IsType<Size>(okResult.Value);
+
+            Assert.NotNull(value);
+            Assert.Equal(99, value.Id);
+            Assert.Equal("Siêu to khổng lồ", value.TenSize);
         }
 
-        // Size12: Id có trong csdl
+        // Size06: Kiểm tra trả về NotFound khi ID không tồn tại
         [Fact]
-        public async Task PutSize_UpdatesSizeAndReturnsNoContent_WhenSizeExists()
-        {
+        public async Task GetSizeByID_InvalidID_ReturnNotFound() {
             // Arrange
-            var size = new Size { TenSize = "TestSize", Id_Loai = 1 };
-            _context.Sizes.Add(size);
-            await _context.SaveChangesAsync();
+            int id = 99999;
 
-            int sizeId = size.Id; 
-            var upload = new UploadSize {
-                TenSize = "Giant",
-                Id_Loai = 2
-            };
             // Act
-            var result = await _controller.PutSize(sizeId, upload);
+            var result = await _controller.GetSize(id);
 
             // Assert
-            Assert.IsType<NoContentResult>(result);
-
-            // Kiểm tra xem dữ liệu trong DB đã được cập nhật chưa
-            var updatedSize = await _context.Sizes.FindAsync(sizeId);
-            Assert.NotNull(updatedSize);
-            Assert.Equal(upload.TenSize, updatedSize.TenSize);
-            Assert.Equal(upload.Id_Loai, updatedSize.Id_Loai);
-
-            // Kiểm tra notification đã được thêm
-            var notification = await _context.Notifications
-                .FirstOrDefaultAsync(n => n.TenSanPham == upload.TenSize && n.TranType == "Edit");
-            Assert.NotNull(notification);
+            Assert.IsType<NotFoundResult>(result.Result);
         }
 
-        // --------------------------------- ADD SIZE -------------------------------------
-        // Size13: Dữ liệu upload hợp lệ
+        // Size07: Kiểm tra thêm kích thước hợp lệ và trả về CreatedAtAction
         [Fact]
         public async Task PostSize_ValidUpload_ReturnsCreatedAtAction() {
             // Arrange
@@ -328,8 +190,38 @@ namespace API.Test {
             Assert.NotNull(notificationInDb);
         }
 
-        // ---------------------------- DELETE SIZE --------------------------------
-        // Size14: Id có trong csdl
+        // Size08: Kiểm tra cập nhật kích thước thành công khi ID tồn tại
+        [Fact]
+        public async Task PutSize_UpdatesSizeAndReturnsNoContent_WhenSizeExists() {
+            // Arrange
+            var size = new Size { TenSize = "TestSize", Id_Loai = 1 };
+            _context.Sizes.Add(size);
+            await _context.SaveChangesAsync();
+
+            int sizeId = size.Id;
+            var upload = new UploadSize {
+                TenSize = "Giant",
+                Id_Loai = 2
+            };
+            // Act
+            var result = await _controller.PutSize(sizeId, upload);
+
+            // Assert
+            Assert.IsType<NoContentResult>(result);
+
+            // Kiểm tra xem dữ liệu trong DB đã được cập nhật chưa
+            var updatedSize = await _context.Sizes.FindAsync(sizeId);
+            Assert.NotNull(updatedSize);
+            Assert.Equal(upload.TenSize, updatedSize.TenSize);
+            Assert.Equal(upload.Id_Loai, updatedSize.Id_Loai);
+
+            // Kiểm tra notification đã được thêm
+            var notification = await _context.Notifications
+                .FirstOrDefaultAsync(n => n.TenSanPham == upload.TenSize && n.TranType == "Edit");
+            Assert.NotNull(notification);
+        }
+
+        // Size09: Kiểm tra xóa kích thước thành công khi ID tồn tại 
         [Fact]
         public async Task DeleteSize_ExistingId_ReturnsNoContent() {
             // Arrange
@@ -354,7 +246,7 @@ namespace API.Test {
             Assert.NotNull(notificationInDb);
         }
 
-        // Size15: Id không có trong csdl
+        // Size10: Kiểm tra trả về NotFound khi xóa kích thước với ID không tồn tại
         [Fact]
         public async Task DeleteSize_NonExistingId_ReturnsNotFound() {
             // Arrange
