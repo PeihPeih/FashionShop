@@ -42,8 +42,7 @@ namespace API.Controllers
             }
             return thuongHieu;
         }
-        // PUT: api/ThuongHieus/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+
         [HttpPut("{id}")]
         public async Task<IActionResult> PutNhanHieu(int id, [FromForm] UploadBrand upload)
         {
@@ -83,7 +82,7 @@ namespace API.Controllers
         {
             NhanHieu nhanhieu = new NhanHieu();
             nhanhieu.Ten = upload.Name;
-           nhanhieu.DateCreate = DateTime.Now;
+            nhanhieu.DateCreate = DateTime.Now;
             _context.NhanHieus.Add(nhanhieu);
             Notification notification = new Notification()
             {
