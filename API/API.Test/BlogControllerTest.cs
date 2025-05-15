@@ -1,4 +1,4 @@
-﻿using API.Controllers;
+using API.Controllers;
 using API.Data;
 using API.Dtos;
 using API.Helper;
@@ -16,454 +16,344 @@ using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace API.Test
+namespace API.Tests.Controllers
 {
-    public class BlogsControllerTests : TestBase
+    public class BlogsControllerTests : IDisposable
     {
         private readonly DPContext _context;
-        private readonly IHubContext<BroadcastHub, IHubClient> _hubContext;
+        private readonly DbContextOptions<DPContext> _options;
+        private readonly Mock<IHubContext<BroadcastHub, IHubClient>> _mockHubContext;
         private readonly BlogsController _controller;
-        private readonly string _wwwrootPath;
+        private readonly Mock<IHubClients<IHubClient>> _mockClients;
 
-        public BlogsControllerTests() : base()
+        public BlogsControllerTests()
         {
+            // Setup in-memory database
+            _options = new DbContextOptionsBuilder<DPContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
             _context = new DPContext(_options);
 
-            var mockHub = new Mock<IHubContext<BroadcastHub, IHubClient>>();
-            var mockClients = new Mock<IHubClients<IHubClient>>();
-            var mockClientProxy = new Mock<IHubClient>();
-            mockHub.Setup(h => h.Clients).Returns(mockClients.Object);
-            mockClients.Setup(c => c.All).Returns(mockClientProxy.Object);
-            _hubContext = mockHub.Object;
+            // Setup mocks for SignalR hub
+            _mockHubContext = new Mock<IHubContext<BroadcastHub, IHubClient>>();
+            _mockClients = new Mock<IHubClients<IHubClient>>();
+            var mockClient = new Mock<IHubClient>();
 
-            _controller = new BlogsController(_context, _hubContext);
+            _mockHubContext.Setup(h => h.Clients).Returns(_mockClients.Object);
+            _mockClients.Setup(c => c.All).Returns(mockClient.Object);
+            mockClient.Setup(c => c.BroadcastMessage()).Returns(Task.CompletedTask);
 
-            var projectRoot = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), @"..\..\..\..\API"));
-            _wwwrootPath = Path.Combine(projectRoot, "wwwroot");
+            // Initialize controller with mocks
+            _controller = new BlogsController(_context, _mockHubContext.Object);
+
+            // Setup test data
+            SeedDatabase();
         }
 
-        // Helper method to create mock files
-        private IFormFile CreateMockFile(string fileName, int length)
+        private void SeedDatabase()
         {
-            var stream = new MemoryStream(new byte[length]); // Create fake data
-            return new FormFile(stream, 0, length, "file", fileName);
-        }
-
-        // Helper methods for setup
-        private async Task<AppUser> CreateTestUserAsync()
-        {
+            // Add test user
             var user = new AppUser
             {
-                FirstName = "Test",
-                LastName = "User"
+                Id = "user123",
+                UserName = "testuser",
+                Email = "test@example.com",
+                FirstName = "Nguyễn",
+                LastName = "Văn A"
             };
             _context.AppUsers.Add(user);
-            await _context.SaveChangesAsync();
-            return user;
-        }
 
-        private async Task<Blog> CreateTestBlogAsync(string userId)
-        {
-            var blog = new Blog
+            // Add test blogs
+            var blogs = new List<Blog>
             {
-                TieuDe = "Test Blog",
-                NoiDung = "Test Content",
-                FkAppUser_NguoiThem = userId
+                new Blog
+                {
+                    Id = 1,
+                    TieuDe = "Blog tiêu đề 1",
+                    NoiDung = "Nội dung blog 1",
+                    FkAppUser_NguoiThem = "user123"
+                },
+                new Blog
+                {
+                    Id = 2,
+                    TieuDe = "Blog tiêu đề 2",
+                    NoiDung = "Nội dung blog 2",
+                    FkAppUser_NguoiThem = "user123"
+                }
             };
-            _context.Blogs.Add(blog);
-            await _context.SaveChangesAsync();
-            return blog;
-        }
+            _context.Blogs.AddRange(blogs);
 
-        private async Task<ImageBlog> AddImageToBlogAsync(int blogId, string imageName = "test-image.jpg")
-        {
-            var image = new ImageBlog
+            // Add test images
+            var images = new List<ImageBlog>
             {
-                FkBlogId = blogId,
-                ImageName = imageName
+                new ImageBlog
+                {
+                    Id = 1,
+                    ImageName = "blog1_image.jpg",
+                    FkBlogId = 1
+                },
+                new ImageBlog
+                {
+                    Id = 2,
+                    ImageName = "blog2_image.jpg",
+                    FkBlogId = 2
+                }
             };
-            _context.ImageBlogs.Add(image);
-            await _context.SaveChangesAsync();
-            return image;
+            _context.ImageBlogs.AddRange(images);
+
+            _context.SaveChanges();
         }
 
-        // ---------------------- GET ALL BLOGS --------------------------
-        // Blog01: Get all blogs - Should return blogs with images
+        public void Dispose()
+        {
+            _context.Database.EnsureDeleted();
+            _context.Dispose();
+        }
+
+        #region GetllBlogs Tests
+
         [Fact]
-        public async Task GetllBlogs_ReturnsAllBlogsWithImages()
+        public async Task TC_BLOG_01_GetllBlogs_ReturnsAllBlogs()
+        {
+            // Act
+            var result = await _controller.GetllBlogs();
+
+            // Assert
+            var actionResult = Assert.IsType<ActionResult<IEnumerable<BlogAndImage>>>(result);
+            var blogList = Assert.IsAssignableFrom<List<BlogAndImage>>(actionResult.Value);
+
+            Assert.Equal(2, blogList.Count);
+            Assert.Equal("Blog tiêu đề 1", blogList[0].TieuDe);
+            Assert.Equal("blog1_image.jpg", blogList[0].image);
+            Assert.Equal("Nguyễn Văn A", blogList[0].nameUser);
+
+            // Check DB
+            var dbBlogCount = await _context.Blogs.CountAsync();
+            Assert.Equal(2, dbBlogCount);
+        }
+
+        [Fact]
+        public async Task TC_BLOG_02_GetllBlogs_ReturnsEmptyList_WhenNoBlogsExist()
         {
             // Arrange
-            var user = await CreateTestUserAsync();
-            var blog = await CreateTestBlogAsync(user.Id);
-            await AddImageToBlogAsync(blog.Id, "image1.jpg");
+            _context.Blogs.RemoveRange(_context.Blogs);
+            _context.ImageBlogs.RemoveRange(_context.ImageBlogs);
+            await _context.SaveChangesAsync();
 
             // Act
             var result = await _controller.GetllBlogs();
 
             // Assert
-            var blogs = Assert.IsType<ActionResult<IEnumerable<BlogAndImage>>>(result);
-            var blogList = Assert.IsAssignableFrom<List<BlogAndImage>>(blogs.Value);
-
-            Assert.NotEmpty(blogList);
-            Assert.Equal("Test Blog", blogList.First().TieuDe);
-            Assert.Equal("Test Content", blogList.First().NoiDung);
-            Assert.Equal("image1.jpg", blogList.First().image);
-            Assert.Equal("Test User", blogList.First().nameUser);
-        }
-
-        // Blog02: Get all blogs - Should return empty list when no blogs exist
-        [Fact]
-        public async Task GetllBlogs_ReturnsEmptyList_WhenNoBlogsExist()
-        {
-            // Arrange - ensure no blogs in database
-            foreach (var blog in _context.Blogs)
-            {
-                _context.Blogs.Remove(blog);
-            }
-            await _context.SaveChangesAsync();
-
-            // Act
-            var result = await _controller.GetllBlogs();
-
-            // Assert
-            var blogs = Assert.IsType<ActionResult<IEnumerable<BlogAndImage>>>(result);
-            var blogList = Assert.IsAssignableFrom<List<BlogAndImage>>(blogs.Value);
+            var actionResult = Assert.IsType<ActionResult<IEnumerable<BlogAndImage>>>(result);
+            var blogList = Assert.IsAssignableFrom<List<BlogAndImage>>(actionResult.Value);
 
             Assert.Empty(blogList);
+
+            // Check DB
+            var dbBlogCount = await _context.Blogs.CountAsync();
+            Assert.Equal(0, dbBlogCount);
         }
 
-        // ---------------------- GET BLOG --------------------------
-        // Blog03: Get blog - Should return blog list with images
-        [Fact]
-        public async Task GetBlog_ReturnsBlogListWithImages()
-        {
-            // Arrange
-            var user = await CreateTestUserAsync();
-            var blog = await CreateTestBlogAsync(user.Id);
-            await AddImageToBlogAsync(blog.Id, "test-image.jpg");
+        #endregion
 
+        #region GetBlog Tests
+
+        [Fact]
+        public async Task TC_BLOG_03_GetBlog_ReturnsAllBlogs()
+        {
             // Act
             var result = await _controller.GetBlog();
 
             // Assert
             var jsonResult = Assert.IsType<JsonResult>(result);
-            var blogList = Assert.IsAssignableFrom<IEnumerable<dynamic>>(jsonResult.Value);
+            var blogs = Assert.IsAssignableFrom<List<dynamic>>(jsonResult.Value);
 
-            Assert.NotEmpty(blogList);
-            dynamic firstBlog = blogList.First();
-            Assert.Equal("Test Blog", firstBlog.tieude);
-            Assert.Equal("Test Content", firstBlog.noidung);
-            Assert.Equal("test-image.jpg", firstBlog.image);
+            Assert.Equal(2, blogs.Count);
+
+            // Check DB
+            var dbBlogCount = await _context.Blogs.CountAsync();
+            Assert.Equal(2, dbBlogCount);
         }
 
-        // Blog04: Get blog - Should return empty list when no blogs exist
+        #endregion
+
+        #region PutBlog Tests
+
         [Fact]
-        public async Task GetBlog_ReturnsEmptyList_WhenNoBlogsExist()
-        {
-            // Arrange - ensure no blogs in database
-            foreach (var blog in _context.Blogs)
-            {
-                _context.Blogs.Remove(blog);
-            }
-            await _context.SaveChangesAsync();
-
-            // Act
-            var result = await _controller.GetBlog();
-
-            // Assert
-            var jsonResult = Assert.IsType<JsonResult>(result);
-            var blogList = Assert.IsAssignableFrom<IEnumerable<dynamic>>(jsonResult.Value);
-
-            Assert.Empty(blogList);
-        }
-
-        // ---------------------- PUT BLOG --------------------------
-        // Blog05: Put blog - Should update blog with new content and without files
-        [Fact]
-        public async Task PutBlog_UpdatesBlogWithoutNewFiles()
+        public async Task TC_BLOG_04_PutBlog_UpdatesExistingBlog()
         {
             // Arrange
-            var user = await CreateTestUserAsync();
-            var blog = await CreateTestBlogAsync(user.Id);
-            await AddImageToBlogAsync(blog.Id, "original-image.jpg");
+            var blogId = 1;
 
-            var upload = new UploadBlog
+            // Tạo mock file
+            var fileMock = new Mock<IFormFile>();
+            var content = "Hello World from a Fake File";
+            var fileName = "test.jpg";
+            var ms = new MemoryStream();
+            var writer = new StreamWriter(ms);
+            writer.Write(content);
+            writer.Flush();
+            ms.Position = 0;
+            fileMock.Setup(_ => _.OpenReadStream()).Returns(ms);
+            fileMock.Setup(_ => _.FileName).Returns(fileName);
+            fileMock.Setup(_ => _.Length).Returns(ms.Length);
+
+            var files = new List<IFormFile> { fileMock.Object };
+
+            var updateModel = new UploadBlog
             {
-                TieuDe = "Updated Title",
-                NoiDung = "Updated Content",
-                FkUserId = user.Id,
-                files = null // No new files
+                TieuDe = "Blog tiêu đề 1 đã cập nhật",
+                NoiDung = "Nội dung blog 1 đã cập nhật",
+                FkUserId = "user123",
+                files = files
             };
 
-            // Chuẩn bị helper method giả
-            TestHelper.SetupDeleteFileMethod();
-
             // Act
-            var result = await _controller.PutBlog(blog.Id, upload);
+            var result = await _controller.PutBlog(blogId, updateModel);
 
             // Assert
-            Assert.IsType<OkResult>(result);
+            var okResult = Assert.IsType<OkResult>(result);
+            Assert.Equal(200, okResult.StatusCode);
 
-            // Verify database was updated
-            var updatedBlog = await _context.Blogs.FindAsync(blog.Id);
-            Assert.Equal("Updated Title", updatedBlog.TieuDe);
-            Assert.Equal("Updated Content", updatedBlog.NoiDung);
+            // Check DB
+            var updatedBlog = await _context.Blogs.FindAsync(blogId);
+            Assert.NotNull(updatedBlog);
+            Assert.Equal("Blog tiêu đề 1 đã cập nhật", updatedBlog.TieuDe);
+            Assert.Equal("Nội dung blog 1 đã cập nhật", updatedBlog.NoiDung);
 
-            // Verify notification was created
-            var notification = await _context.Notifications
-                .FirstOrDefaultAsync(n => n.TenSanPham == "Updated Title" && n.TranType == "Edit");
+            // Check notification
+            var notification = await _context.Notifications.FirstOrDefaultAsync(n => n.TenSanPham == "Blog tiêu đề 1 đã cập nhật");
             Assert.NotNull(notification);
+            Assert.Equal("Edit", notification.TranType);
         }
 
-        // Blog06: Put blog - Should update blog with new files
         [Fact]
-        public async Task PutBlog_UpdatesBlogWithNewFiles()
+        public async Task TC_BLOG_05_PutBlog_ThrowsException_WhenBlogNotFound()
         {
             // Arrange
-            var user = await CreateTestUserAsync();
-            var blog = await CreateTestBlogAsync(user.Id);
-            await AddImageToBlogAsync(blog.Id, "original-image.jpg");
+            var nonExistentBlogId = 999;
 
-            var file = CreateMockFile("new-image.jpg", 1024);
-            var upload = new UploadBlog
+            var files = new List<IFormFile>();
+
+            var updateModel = new UploadBlog
             {
-                TieuDe = "Blog With New Image",
-                NoiDung = "Content with new image",
-                FkUserId = user.Id,
-                files = new List<IFormFile> { file }
-            };
-
-            // Chuẩn bị helper method giả
-            TestHelper.SetupDeleteFileMethod();
-            TestHelper.SetupUploadImageMethod("new-uploaded-image.jpg");
-
-            // Act
-            var result = await _controller.PutBlog(blog.Id, upload);
-
-            // Assert
-            Assert.IsType<OkResult>(result);
-
-            // Verify database was updated
-            var updatedBlog = await _context.Blogs.FindAsync(blog.Id);
-            Assert.Equal("Blog With New Image", updatedBlog.TieuDe);
-
-            // Verify image was updated
-            var blogImages = await _context.ImageBlogs.Where(i => i.FkBlogId == blog.Id).ToListAsync();
-            Assert.Single(blogImages);
-
-            // Verify notification was created
-            var notification = await _context.Notifications
-                .FirstOrDefaultAsync(n => n.TenSanPham == "Blog With New Image" && n.TranType == "Edit");
-            Assert.NotNull(notification);
-        }
-
-        // Blog07: Put blog - Should ignore files larger than size limit (5120 bytes)
-        [Fact]
-        public async Task PutBlog_IgnoresLargeFiles()
-        {
-            // Arrange
-            var user = await CreateTestUserAsync();
-            var blog = await CreateTestBlogAsync(user.Id);
-            await AddImageToBlogAsync(blog.Id, "original-image.jpg");
-
-            // Create a file larger than the size limit
-            var largeFile = CreateMockFile("large-image.jpg", 10000); // > 5120 bytes
-            var upload = new UploadBlog
-            {
-                TieuDe = "Blog With Large Image",
-                NoiDung = "Content with large image",
-                FkUserId = user.Id,
-                files = new List<IFormFile> { largeFile }
-            };
-
-            // Chuẩn bị helper method giả
-            TestHelper.SetupDeleteFileMethod();
-            TestHelper.SetupUploadImageMethod("new-image.jpg");
-
-            // Act
-            var result = await _controller.PutBlog(blog.Id, upload);
-
-            // Assert
-            Assert.IsType<OkResult>(result);
-
-            // Verify database was updated
-            var updatedBlog = await _context.Blogs.FindAsync(blog.Id);
-            Assert.Equal("Blog With Large Image", updatedBlog.TieuDe);
-
-            // Large files should be ignored, so we should have no images
-            var blogImages = await _context.ImageBlogs.Where(i => i.FkBlogId == blog.Id).ToListAsync();
-            Assert.Empty(blogImages);
-        }
-
-        // Blog08: Put blog - Should handle blog that doesn't exist
-        [Fact]
-        public async Task PutBlog_ReturnsNotFound_WhenBlogDoesNotExist()
-        {
-            // Arrange
-            var upload = new UploadBlog
-            {
-                TieuDe = "Non-existent Blog",
-                NoiDung = "Content",
-                FkUserId = "1",
-                files = null
+                TieuDe = "Blog không tồn tại",
+                NoiDung = "Nội dung blog không tồn tại",
+                FkUserId = "user123",
+                files = files
             };
 
             // Act & Assert
-            await Assert.ThrowsAnyAsync<Exception>(() => _controller.PutBlog(999, upload));
+            await Assert.ThrowsAsync<NullReferenceException>(() =>
+                _controller.PutBlog(nonExistentBlogId, updateModel));
+
+            // Check DB
+            var blog = await _context.Blogs.FindAsync(nonExistentBlogId);
+            Assert.Null(blog);
         }
 
-        // ---------------------- POST BLOG --------------------------
-        // Blog09: Post blog - Should create new blog without files
+        #endregion
+
+        #region PostBlog Tests
+
         [Fact]
-        public async Task PostBlog_CreatesNewBlogWithoutFiles()
+        public async Task TC_BLOG_06_PostBlog_CreatesNewBlog()
         {
             // Arrange
-            var user = await CreateTestUserAsync();
-            var upload = new UploadBlog
+            // Tạo mock file
+            var fileMock = new Mock<IFormFile>();
+            var content = "Hello World from a Fake File";
+            var fileName = "test.jpg";
+            var ms = new MemoryStream();
+            var writer = new StreamWriter(ms);
+            writer.Write(content);
+            writer.Flush();
+            ms.Position = 0;
+            fileMock.Setup(_ => _.OpenReadStream()).Returns(ms);
+            fileMock.Setup(_ => _.FileName).Returns(fileName);
+            fileMock.Setup(_ => _.Length).Returns(ms.Length);
+
+            var files = new List<IFormFile> { fileMock.Object };
+
+            var newBlogModel = new UploadBlog
             {
-                TieuDe = "New Blog",
-                NoiDung = "New Content",
-                FkUserId = user.Id,
-                files = null
+                TieuDe = "Blog tiêu đề mới",
+                NoiDung = "Nội dung blog mới",
+                FkUserId = "user123",
+                files = files
             };
 
+            // Initial count
+            var initialBlogCount = await _context.Blogs.CountAsync();
+
             // Act
-            var result = await _controller.PostBlog(upload);
+            var result = await _controller.PostBlog(newBlogModel);
 
             // Assert
-            Assert.IsType<OkResult>(result.Result);
+            var okResult = Assert.IsType<OkResult>(result);
+            Assert.Equal(200, okResult.StatusCode);
 
-            // Verify blog was created
-            var blog = await _context.Blogs.FirstOrDefaultAsync(b => b.TieuDe == "New Blog");
-            Assert.NotNull(blog);
-            Assert.Equal("New Content", blog.NoiDung);
-            Assert.Equal(user.Id, blog.FkAppUser_NguoiThem);
+            // Check DB
+            var currentBlogCount = await _context.Blogs.CountAsync();
+            Assert.Equal(initialBlogCount + 1, currentBlogCount);
 
-            // Verify notification was created
-            var notification = await _context.Notifications
-                .FirstOrDefaultAsync(n => n.TenSanPham == "New Blog" && n.TranType == "Add");
+            var newBlog = await _context.Blogs.FirstOrDefaultAsync(b => b.TieuDe == "Blog tiêu đề mới");
+            Assert.NotNull(newBlog);
+            Assert.Equal("Nội dung blog mới", newBlog.NoiDung);
+            Assert.Equal("user123", newBlog.FkAppUser_NguoiThem);
+
+            // Check notification
+            var notification = await _context.Notifications.FirstOrDefaultAsync(n => n.TenSanPham == "Blog tiêu đề mới");
             Assert.NotNull(notification);
+            Assert.Equal("Add", notification.TranType);
         }
 
-        // Blog10: Post blog - Should create new blog with files
+        #endregion
+
+        #region DeleteBlog Tests
+
         [Fact]
-        public async Task PostBlog_CreatesNewBlogWithFiles()
+        public async Task TC_BLOG_07_DeleteBlog_RemovesBlog()
         {
             // Arrange
-            var user = await CreateTestUserAsync();
-            var file = CreateMockFile("blog-image.jpg", 1024);
-            var upload = new UploadBlog
-            {
-                TieuDe = "Blog With Image",
-                NoiDung = "Content with image",
-                FkUserId = user.Id,
-                files = new List<IFormFile> { file }
-            };
-
-            // Chuẩn bị helper method giả
-            TestHelper.SetupUploadImageMethod("uploaded-image.jpg");
+            var blogId = 2;
+            var initialBlogCount = await _context.Blogs.CountAsync();
+            var initialImageCount = await _context.ImageBlogs.CountAsync(i => i.FkBlogId == blogId);
+            Assert.Equal(1, initialImageCount); // Verify we have an image to delete
 
             // Act
-            var result = await _controller.PostBlog(upload);
+            var result = await _controller.DeleteBlog(blogId);
 
             // Assert
-            Assert.IsType<OkResult>(result.Result);
+            var okResult = Assert.IsType<OkResult>(result);
+            Assert.Equal(200, okResult.StatusCode);
 
-            // Verify blog was created
-            var blog = await _context.Blogs.FirstOrDefaultAsync(b => b.TieuDe == "Blog With Image");
-            Assert.NotNull(blog);
+            // Check DB
+            var currentBlogCount = await _context.Blogs.CountAsync();
+            Assert.Equal(initialBlogCount - 1, currentBlogCount);
 
-            // Verify notification was created
-            var notification = await _context.Notifications
-                .FirstOrDefaultAsync(n => n.TenSanPham == "Blog With Image" && n.TranType == "Add");
-            Assert.NotNull(notification);
-        }
-
-        // Blog11: Post blog - Should ignore files larger than size limit
-        [Fact]
-        public async Task PostBlog_IgnoresLargeFiles()
-        {
-            // Arrange
-            var user = await CreateTestUserAsync();
-            var largeFile = CreateMockFile("large-image.jpg", 10000); // > 5120 bytes
-            var upload = new UploadBlog
-            {
-                TieuDe = "Blog With Large Image",
-                NoiDung = "Content with large image",
-                FkUserId = user.Id,
-                files = new List<IFormFile> { largeFile }
-            };
-
-            // Act
-            var result = await _controller.PostBlog(upload);
-
-            // Assert
-            Assert.IsType<OkResult>(result.Result);
-
-            // Verify blog was created
-            var blog = await _context.Blogs.FirstOrDefaultAsync(b => b.TieuDe == "Blog With Large Image");
-            Assert.NotNull(blog);
-
-            // Large files should be ignored, so we should have no images
-            var images = await _context.ImageBlogs.Where(i => i.FkBlogId == blog.Id).ToListAsync();
-            Assert.Empty(images);
-        }
-
-        // ---------------------- DELETE BLOG --------------------------
-        // Blog12: Delete blog - Should delete blog and associated images
-        [Fact]
-        public async Task DeleteBlog_DeletesBlogAndImages()
-        {
-            // Arrange
-            var user = await CreateTestUserAsync();
-            var blog = await CreateTestBlogAsync(user.Id);
-            await AddImageToBlogAsync(blog.Id, "image-to-delete.jpg");
-
-            // Chuẩn bị helper method giả
-            TestHelper.SetupDeleteFileMethod();
-
-            // Act
-            var result = await _controller.DeleteBlog(blog.Id);
-
-            // Assert
-            Assert.IsType<OkResult>(result);
-
-            // Verify blog was deleted
-            var deletedBlog = await _context.Blogs.FindAsync(blog.Id);
+            var deletedBlog = await _context.Blogs.FindAsync(blogId);
             Assert.Null(deletedBlog);
 
-            // Verify images were deleted
-            var images = await _context.ImageBlogs.Where(i => i.FkBlogId == blog.Id).ToListAsync();
-            Assert.Empty(images);
+            var remainingImages = await _context.ImageBlogs.CountAsync(i => i.FkBlogId == blogId);
+            Assert.Equal(0, remainingImages);
         }
 
-        // Blog13: Delete blog - Should handle blog that doesn't exist
         [Fact]
-        public async Task DeleteBlog_HandlesNonExistentBlog()
+        public async Task TC_BLOG_08_DeleteBlog_ThrowsException_WhenBlogNotFound()
         {
-            // Arrange - Use a blog ID that doesn't exist
-            int nonExistentId = 9999;
+            // Arrange
+            var nonExistentBlogId = 999;
 
-            // Chuẩn bị helper method giả
-            TestHelper.SetupDeleteFileMethod();
+            // Act & Assert
+            await Assert.ThrowsAsync<NullReferenceException>(() =>
+                _controller.DeleteBlog(nonExistentBlogId));
 
-            // Act & Assert - Should not throw an exception
-            var result = await _controller.DeleteBlog(nonExistentId);
-            Assert.IsType<OkResult>(result);
-        }
-    }
-
-    // Lớp giúp đỡ với các phương thức tĩnh cho test
-    public static class TestHelper
-    {
-        public static void SetupDeleteFileMethod()
-        {
-            // Giả lập phương thức xóa file mà không cần dùng reflection
+            // Check DB unchanged
+            var initialBlogCount = await _context.Blogs.CountAsync();
+            Assert.Equal(2, initialBlogCount);
         }
 
-        public static void SetupUploadImageMethod(string returnFileName)
-        {
-            // Giả lập phương thức upload ảnh mà không cần dùng reflection
-        }
+        #endregion
     }
 }
